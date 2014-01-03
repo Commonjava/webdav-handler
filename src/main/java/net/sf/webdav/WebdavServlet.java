@@ -18,10 +18,10 @@ package net.sf.webdav;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
-
-import javax.servlet.ServletException;
+import java.util.Map;
 
 import net.sf.webdav.exceptions.WebdavException;
+import net.sf.webdav.spi.WebDavException;
 
 /**
  * Servlet which provides support for WebDAV level 2.
@@ -32,84 +32,94 @@ import net.sf.webdav.exceptions.WebdavException;
  * @author Remy Maucherat
  */
 
-public class WebdavServlet extends WebDavServletBean {
+public class WebdavServlet
+    extends WebDavServletBean
+{
 
     private static final String ROOTPATH_PARAMETER = "rootpath";
 
-    @Override
-    public void init() throws ServletException {
+    public WebdavServlet( final Map<String, String> initParams )
+    {
+        super( initParams );
+    }
 
+    public void init()
+        throws WebDavException
+    {
         // Parameters from web.xml
-        String clazzName = getServletConfig().getInitParameter(
-                "ResourceHandlerImplementation");
-        if (clazzName == null || clazzName.equals("")) {
+        String clazzName = getConfig().getInitParameter( "ResourceHandlerImplementation" );
+        if ( clazzName == null || clazzName.equals( "" ) )
+        {
             clazzName = LocalFileSystemStore.class.getName();
         }
 
-        File root = getFileRoot();
+        final File root = getFileRoot();
 
-        IWebdavStore webdavStore = constructStore(clazzName, root);
+        final IWebdavStore webdavStore = constructStore( clazzName, root );
 
-        boolean lazyFolderCreationOnPut = getInitParameter("lazyFolderCreationOnPut") != null
-                && getInitParameter("lazyFolderCreationOnPut").equals("1");
+        final boolean lazyFolderCreationOnPut =
+            getInitParameter( "lazyFolderCreationOnPut" ) != null && getInitParameter( "lazyFolderCreationOnPut" ).equals( "1" );
 
-        String dftIndexFile = getInitParameter("default-index-file");
-        String insteadOf404 = getInitParameter("instead-of-404");
+        final String dftIndexFile = getInitParameter( "default-index-file" );
+        final String insteadOf404 = getInitParameter( "instead-of-404" );
 
-        int noContentLengthHeader = getIntInitParameter("no-content-length-headers");
+        final int noContentLengthHeader = getIntInitParameter( "no-content-length-headers" );
 
-        super.init(webdavStore, dftIndexFile, insteadOf404,
-                noContentLengthHeader, lazyFolderCreationOnPut);
+        super.init( webdavStore, dftIndexFile, insteadOf404, noContentLengthHeader, lazyFolderCreationOnPut );
     }
 
-    private int getIntInitParameter(String key) {
-        return getInitParameter(key) == null ? -1 : Integer
-                .parseInt(getInitParameter(key));
-    }
-
-    protected IWebdavStore constructStore(String clazzName, File root) {
+    protected IWebdavStore constructStore( final String clazzName, final File root )
+    {
         IWebdavStore webdavStore;
-        try {
-            Class<?> clazz = WebdavServlet.class.getClassLoader().loadClass(
-                    clazzName);
+        try
+        {
+            final Class<?> clazz = WebdavServlet.class.getClassLoader()
+                                                      .loadClass( clazzName );
 
-            Constructor<?> ctor = clazz
-                    .getConstructor(new Class[] { File.class });
+            final Constructor<?> ctor = clazz.getConstructor( new Class[] { File.class } );
 
-            webdavStore = (IWebdavStore) ctor
-                    .newInstance(new Object[] { root });
-        } catch (Exception e) {
+            webdavStore = (IWebdavStore) ctor.newInstance( new Object[] { root } );
+        }
+        catch ( final Exception e )
+        {
             e.printStackTrace();
-            throw new RuntimeException("some problem making store component", e);
+            throw new RuntimeException( "some problem making store component", e );
         }
         return webdavStore;
     }
 
-    private File getFileRoot() {
-        String rootPath = getInitParameter(ROOTPATH_PARAMETER);
-        if (rootPath == null) {
-            throw new WebdavException("missing parameter: "
-                    + ROOTPATH_PARAMETER);
+    private File getFileRoot()
+    {
+        String rootPath = getInitParameter( ROOTPATH_PARAMETER );
+        if ( rootPath == null )
+        {
+            throw new WebdavException( "missing parameter: " + ROOTPATH_PARAMETER );
         }
-        if (rootPath.equals("*WAR-FILE-ROOT*")) {
+        if ( rootPath.equals( "*WAR-FILE-ROOT*" ) )
+        {
             String file = LocalFileSystemStore.class.getProtectionDomain()
-                    .getCodeSource().getLocation().getFile().replace('\\', '/');
-            if (file.charAt(0) == '/'
-                    && System.getProperty("os.name").indexOf("Windows") != -1) {
-                file = file.substring(1, file.length());
+                                                    .getCodeSource()
+                                                    .getLocation()
+                                                    .getFile()
+                                                    .replace( '\\', '/' );
+            if ( file.charAt( 0 ) == '/' && System.getProperty( "os.name" )
+                                                  .indexOf( "Windows" ) != -1 )
+            {
+                file = file.substring( 1, file.length() );
             }
 
-            int ix = file.indexOf("/WEB-INF/");
-            if (ix != -1) {
-                rootPath = file.substring(0, ix).replace('/',
-                        File.separatorChar);
-            } else {
-                throw new WebdavException(
-                        "Could not determine root of war file. Can't extract from path '"
-                                + file + "' for this web container");
+            final int ix = file.indexOf( "/WEB-INF/" );
+            if ( ix != -1 )
+            {
+                rootPath = file.substring( 0, ix )
+                               .replace( '/', File.separatorChar );
+            }
+            else
+            {
+                throw new WebdavException( "Could not determine root of war file. Can't extract from path '" + file + "' for this web container" );
             }
         }
-        return new File(rootPath);
+        return new File( rootPath );
     }
 
 }

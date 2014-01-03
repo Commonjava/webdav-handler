@@ -3,9 +3,6 @@ package net.sf.webdav.methods;
 import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import net.sf.webdav.ITransaction;
 import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
@@ -13,12 +10,13 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.spi.HttpServletRequest;
+import net.sf.webdav.spi.HttpServletResponse;
 import net.sf.webdav.testutil.MockTest;
 
 import org.jmock.Expectations;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.mock.web.DelegatingServletInputStream;
 
 public class DoLockTest extends MockTest {
 

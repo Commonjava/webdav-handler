@@ -2,95 +2,120 @@ package net.sf.webdav.methods;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import net.sf.webdav.StoredObject;
 import net.sf.webdav.ITransaction;
-import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.IWebdavStore;
+import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
+import net.sf.webdav.spi.HttpServletRequest;
+import net.sf.webdav.spi.HttpServletResponse;
 
-public class DoUnlock extends DeterminableMethod {
+public class DoUnlock
+    extends DeterminableMethod
+{
 
-    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory
-            .getLogger(DoUnlock.class);
+    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoUnlock.class );
 
-    private IWebdavStore _store;
-    private IResourceLocks _resourceLocks;
-    private boolean _readOnly;
+    private final IWebdavStore _store;
 
-    public DoUnlock(IWebdavStore store, IResourceLocks resourceLocks,
-            boolean readOnly) {
+    private final IResourceLocks _resourceLocks;
+
+    private final boolean _readOnly;
+
+    public DoUnlock( final IWebdavStore store, final IResourceLocks resourceLocks, final boolean readOnly )
+    {
         _store = store;
         _resourceLocks = resourceLocks;
         _readOnly = readOnly;
     }
 
-    public void execute(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException, LockFailedException {
-        LOG.trace("-- " + this.getClass().getName());
+    @Override
+    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException, LockFailedException
+    {
+        LOG.trace( "-- " + this.getClass()
+                               .getName() );
 
-        if (_readOnly) {
-            resp.sendError(WebdavStatus.SC_FORBIDDEN);
+        if ( _readOnly )
+        {
+            resp.sendError( WebdavStatus.SC_FORBIDDEN );
             return;
-        } else {
+        }
+        else
+        {
 
-            String path = getRelativePath(req);
-            String tempLockOwner = "doUnlock" + System.currentTimeMillis()
-                    + req.toString();
-            try {
-                if (_resourceLocks.lock(transaction, path, tempLockOwner,
-                        false, 0, TEMP_TIMEOUT, TEMPORARY)) {
+            final String path = getRelativePath( req );
+            final String tempLockOwner = "doUnlock" + System.currentTimeMillis() + req.toString();
+            try
+            {
+                if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+                {
 
-                    String lockId = getLockIdFromLockTokenHeader(req);
+                    final String lockId = getLockIdFromLockTokenHeader( req );
                     LockedObject lo;
-                    if (lockId != null
-                            && ((lo = _resourceLocks.getLockedObjectByID(
-                                    transaction, lockId)) != null)) {
+                    if ( lockId != null && ( ( lo = _resourceLocks.getLockedObjectByID( transaction, lockId ) ) != null ) )
+                    {
 
-                        String[] owners = lo.getOwner();
+                        final String[] owners = lo.getOwner();
                         String owner = null;
-                        if (lo.isShared()) {
+                        if ( lo.isShared() )
+                        {
                             // more than one owner is possible
-                            if (owners != null) {
-                                for (int i = 0; i < owners.length; i++) {
+                            if ( owners != null )
+                            {
+                                for ( final String owner2 : owners )
+                                {
                                     // remove owner from LockedObject
-                                    lo.removeLockedObjectOwner(owners[i]);
+                                    lo.removeLockedObjectOwner( owner2 );
                                 }
                             }
-                        } else {
+                        }
+                        else
+                        {
                             // exclusive, only one lock owner
-                            if (owners != null)
+                            if ( owners != null )
+                            {
                                 owner = owners[0];
+                            }
                             else
+                            {
                                 owner = null;
+                            }
                         }
 
-                        if (_resourceLocks.unlock(transaction, lockId, owner)) {
-                            StoredObject so = _store.getStoredObject(
-                                    transaction, path);
-                            if (so.isNullResource()) {
-                                _store.removeObject(transaction, path);
+                        if ( _resourceLocks.unlock( transaction, lockId, owner ) )
+                        {
+                            final StoredObject so = _store.getStoredObject( transaction, path );
+                            if ( so.isNullResource() )
+                            {
+                                _store.removeObject( transaction, path );
                             }
 
-                            resp.setStatus(WebdavStatus.SC_NO_CONTENT);
-                        } else {
-                            LOG.trace("DoUnlock failure at " + lo.getPath());
-                            resp.sendError(WebdavStatus.SC_METHOD_FAILURE);
+                            resp.setStatus( WebdavStatus.SC_NO_CONTENT );
+                        }
+                        else
+                        {
+                            LOG.trace( "DoUnlock failure at " + lo.getPath() );
+                            resp.sendError( WebdavStatus.SC_METHOD_FAILURE );
                         }
 
-                    } else {
-                        resp.sendError(WebdavStatus.SC_BAD_REQUEST);
+                    }
+                    else
+                    {
+                        resp.sendError( WebdavStatus.SC_BAD_REQUEST );
                     }
                 }
-            } catch (LockFailedException e) {
+            }
+            catch ( final LockFailedException e )
+            {
+                // FIXME
                 e.printStackTrace();
-            } finally {
-                _resourceLocks.unlockTemporaryLockedObjects(transaction, path,
-                        tempLockOwner);
+            }
+            finally
+            {
+                _resourceLocks.unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
             }
         }
     }

@@ -15,13 +15,19 @@
  */
 package net.sf.webdav.methods;
 
+import static net.sf.webdav.WebdavStatus.SC_BAD_REQUEST;
+import static net.sf.webdav.WebdavStatus.SC_CREATED;
+import static net.sf.webdav.WebdavStatus.SC_FORBIDDEN;
+import static net.sf.webdav.WebdavStatus.SC_INTERNAL_SERVER_ERROR;
+import static net.sf.webdav.WebdavStatus.SC_LOCKED;
+import static net.sf.webdav.WebdavStatus.SC_NO_CONTENT;
+import static net.sf.webdav.WebdavStatus.SC_OK;
+import static net.sf.webdav.WebdavStatus.SC_PRECONDITION_FAILED;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 
 import net.sf.webdav.ITransaction;
@@ -33,6 +39,9 @@ import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.fromcatalina.XMLWriter;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
+import net.sf.webdav.spi.HttpServletRequest;
+import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.WebDavException;
 
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -42,101 +51,125 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class DoLock extends AbstractMethod {
+public class DoLock
+    extends AbstractMethod
+{
 
-    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory
-            .getLogger(DoLock.class);
+    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoLock.class );
 
-    private IWebdavStore _store;
-    private IResourceLocks _resourceLocks;
-    private boolean _readOnly;
+    private final IWebdavStore _store;
+
+    private final IResourceLocks _resourceLocks;
+
+    private final boolean _readOnly;
 
     private boolean _macLockRequest = false;
 
     private boolean _exclusive = false;
+
     private String _type = null;
+
     private String _lockOwner = null;
 
     private String _path = null;
+
     private String _parentPath = null;
 
     private String _userAgent = null;
 
-    public DoLock(IWebdavStore store, IResourceLocks resourceLocks,
-            boolean readOnly) {
+    public DoLock( final IWebdavStore store, final IResourceLocks resourceLocks, final boolean readOnly )
+    {
         _store = store;
         _resourceLocks = resourceLocks;
         _readOnly = readOnly;
     }
 
-    public void execute(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException, LockFailedException {
-        LOG.trace("-- " + this.getClass().getName());
+    @Override
+    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException, LockFailedException
+    {
+        LOG.trace( "-- " + this.getClass()
+                               .getName() );
 
-        if (_readOnly) {
-            resp.sendError(WebdavStatus.SC_FORBIDDEN);
+        if ( _readOnly )
+        {
+            resp.sendError( SC_FORBIDDEN );
             return;
-        } else {
-            _path = getRelativePath(req);
-            _parentPath = getParentPath(getCleanPath(_path));
+        }
+        else
+        {
+            _path = getRelativePath( req );
+            _parentPath = getParentPath( getCleanPath( _path ) );
 
-            Hashtable<String, Integer> errorList = new Hashtable<String, Integer>();
+            final Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
 
-            if (!checkLocks(transaction, req, resp, _resourceLocks, _path)) {
-                errorList.put(_path, WebdavStatus.SC_LOCKED);
-                sendReport(req, resp, errorList);
+            if ( !checkLocks( transaction, req, resp, _resourceLocks, _path ) )
+            {
+                errorList.put( _path, SC_LOCKED );
+                sendReport( req, resp, errorList );
                 return; // resource is locked
             }
 
-            if (!checkLocks(transaction, req, resp, _resourceLocks, _parentPath)) {
-                errorList.put(_parentPath, WebdavStatus.SC_LOCKED);
-                sendReport(req, resp, errorList);
+            if ( !checkLocks( transaction, req, resp, _resourceLocks, _parentPath ) )
+            {
+                errorList.put( _parentPath, SC_LOCKED );
+                sendReport( req, resp, errorList );
                 return; // parent is locked
             }
 
             // Mac OS Finder (whether 10.4.x or 10.5) can't store files
             // because executing a LOCK without lock information causes a
             // SC_BAD_REQUEST
-            _userAgent = req.getHeader("User-Agent");
-            if (_userAgent != null && _userAgent.indexOf("Darwin") != -1) {
+            _userAgent = req.getHeader( "User-Agent" );
+            if ( _userAgent != null && _userAgent.indexOf( "Darwin" ) != -1 )
+            {
                 _macLockRequest = true;
 
-                String timeString = new Long(System.currentTimeMillis())
-                        .toString();
-                _lockOwner = _userAgent.concat(timeString);
+                final String timeString = new Long( System.currentTimeMillis() ).toString();
+                _lockOwner = _userAgent.concat( timeString );
             }
 
-            String tempLockOwner = "doLock" + System.currentTimeMillis()
-                    + req.toString();
-            if (_resourceLocks.lock(transaction, _path, tempLockOwner, false,
-                    0, TEMP_TIMEOUT, TEMPORARY)) {
-                try {
-                    if (req.getHeader("If") != null) {
-                        doRefreshLock(transaction, req, resp);
-                    } else {
-                        doLock(transaction, req, resp);
+            final String tempLockOwner = "doLock" + System.currentTimeMillis() + req.toString();
+            if ( _resourceLocks.lock( transaction, _path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+            {
+                try
+                {
+                    if ( req.getHeader( "If" ) != null )
+                    {
+                        doRefreshLock( transaction, req, resp );
                     }
-                } catch (LockFailedException e) {
-                    resp.sendError(WebdavStatus.SC_LOCKED);
+                    else
+                    {
+                        doLock( transaction, req, resp );
+                    }
+                }
+                catch ( final LockFailedException e )
+                {
+                    resp.sendError( SC_LOCKED );
                     e.printStackTrace();
-                } finally {
-                    _resourceLocks.unlockTemporaryLockedObjects(transaction,
-                            _path, tempLockOwner);
+                }
+                finally
+                {
+                    _resourceLocks.unlockTemporaryLockedObjects( transaction, _path, tempLockOwner );
                 }
             }
         }
     }
 
-    private void doLock(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException, LockFailedException {
+    private void doLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException, LockFailedException
+    {
 
-        StoredObject so = _store.getStoredObject(transaction, _path);
+        StoredObject so = _store.getStoredObject( transaction, _path );
 
-        if (so != null) {
-            doLocking(transaction, req, resp);
-        } else {
+        if ( so != null )
+        {
+            doLocking( transaction, req, resp );
+        }
+        else
+        {
             // resource doesn't exist, null-resource lock
-            doNullResourceLock(transaction, req, resp);
+            doNullResourceLock( transaction, req, resp );
         }
 
         so = null;
@@ -146,119 +179,150 @@ public class DoLock extends AbstractMethod {
 
     }
 
-    private void doLocking(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException {
+    private void doLocking( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException
+    {
 
         // Tests if LockObject on requested path exists, and if so, tests
         // exclusivity
-        LockedObject lo = _resourceLocks.getLockedObjectByPath(transaction,
-                _path);
-        if (lo != null) {
-            if (lo.isExclusive()) {
-                sendLockFailError(transaction, req, resp);
+        LockedObject lo = _resourceLocks.getLockedObjectByPath( transaction, _path );
+        if ( lo != null )
+        {
+            if ( lo.isExclusive() )
+            {
+                sendLockFailError( transaction, req, resp );
                 return;
             }
         }
-        try {
+        try
+        {
             // Thats the locking itself
-            executeLock(transaction, req, resp);
+            executeLock( transaction, req, resp );
 
-        } catch (ServletException e) {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
-            LOG.trace(e.toString());
-        } catch (LockFailedException e) {
-            sendLockFailError(transaction, req, resp);
-        } finally {
+        }
+        catch ( final WebDavException e )
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
+            LOG.trace( e.toString() );
+        }
+        catch ( final LockFailedException e )
+        {
+            sendLockFailError( transaction, req, resp );
+        }
+        finally
+        {
             lo = null;
         }
 
     }
 
-    private void doNullResourceLock(ITransaction transaction,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    private void doNullResourceLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException
+    {
 
         StoredObject parentSo, nullSo = null;
 
-        try {
-            parentSo = _store.getStoredObject(transaction, _parentPath);
-            if (_parentPath != null && parentSo == null) {
-                _store.createFolder(transaction, _parentPath);
-            } else if (_parentPath != null && parentSo != null
-                    && parentSo.isResource()) {
-                resp.sendError(WebdavStatus.SC_PRECONDITION_FAILED);
+        try
+        {
+            parentSo = _store.getStoredObject( transaction, _parentPath );
+            if ( _parentPath != null && parentSo == null )
+            {
+                _store.createFolder( transaction, _parentPath );
+            }
+            else if ( _parentPath != null && parentSo != null && parentSo.isResource() )
+            {
+                resp.sendError( SC_PRECONDITION_FAILED );
                 return;
             }
 
-            nullSo = _store.getStoredObject(transaction, _path);
-            if (nullSo == null) {
+            nullSo = _store.getStoredObject( transaction, _path );
+            if ( nullSo == null )
+            {
                 // resource doesn't exist
-                _store.createResource(transaction, _path);
+                _store.createResource( transaction, _path );
 
                 // Transmit expects 204 response-code, not 201
-                if (_userAgent != null && _userAgent.indexOf("Transmit") != -1) {
-                    LOG
-                            .trace("DoLock.execute() : do workaround for user agent '"
-                                    + _userAgent + "'");
-                    resp.setStatus(WebdavStatus.SC_NO_CONTENT);
-                } else {
-                    resp.setStatus(WebdavStatus.SC_CREATED);
+                if ( _userAgent != null && _userAgent.indexOf( "Transmit" ) != -1 )
+                {
+                    LOG.trace( "DoLock.execute() : do workaround for user agent '" + _userAgent + "'" );
+                    resp.setStatus( SC_NO_CONTENT );
+                }
+                else
+                {
+                    resp.setStatus( SC_CREATED );
                 }
 
-            } else {
+            }
+            else
+            {
                 // resource already exists, could not execute null-resource lock
-                sendLockFailError(transaction, req, resp);
+                sendLockFailError( transaction, req, resp );
                 return;
             }
-            nullSo = _store.getStoredObject(transaction, _path);
+            nullSo = _store.getStoredObject( transaction, _path );
             // define the newly created resource as null-resource
-            nullSo.setNullResource(true);
+            nullSo.setNullResource( true );
 
             // Thats the locking itself
-            executeLock(transaction, req, resp);
+            executeLock( transaction, req, resp );
 
-        } catch (LockFailedException e) {
-            sendLockFailError(transaction, req, resp);
-        } catch (WebdavException e) {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+        catch ( final LockFailedException e )
+        {
+            sendLockFailError( transaction, req, resp );
+        }
+        catch ( final WebdavException e )
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
             e.printStackTrace();
-        } catch (ServletException e) {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+        catch ( final WebDavException e )
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
             e.printStackTrace();
-        } finally {
+        }
+        finally
+        {
             parentSo = null;
             nullSo = null;
         }
     }
 
-    private void doRefreshLock(ITransaction transaction,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, LockFailedException {
+    private void doRefreshLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException, LockFailedException
+    {
 
-        String[] lockTokens = getLockIdFromIfHeader(req);
+        final String[] lockTokens = getLockIdFromIfHeader( req );
         String lockToken = null;
-        if (lockTokens != null)
+        if ( lockTokens != null )
+        {
             lockToken = lockTokens[0];
+        }
 
-        if (lockToken != null) {
+        if ( lockToken != null )
+        {
             // Getting LockObject of specified lockToken in If header
-            LockedObject refreshLo = _resourceLocks.getLockedObjectByID(
-                    transaction, lockToken);
-            if (refreshLo != null) {
-                int timeout = getTimeout(transaction, req);
+            LockedObject refreshLo = _resourceLocks.getLockedObjectByID( transaction, lockToken );
+            if ( refreshLo != null )
+            {
+                final int timeout = getTimeout( transaction, req );
 
-                refreshLo.refreshTimeout(timeout);
+                refreshLo.refreshTimeout( timeout );
                 // sending success response
-                generateXMLReport(transaction, resp, refreshLo);
+                generateXMLReport( transaction, resp, refreshLo );
 
                 refreshLo = null;
-            } else {
+            }
+            else
+            {
                 // no LockObject to given lockToken
-                resp.sendError(WebdavStatus.SC_PRECONDITION_FAILED);
+                resp.sendError( SC_PRECONDITION_FAILED );
             }
 
-        } else {
-            resp.sendError(WebdavStatus.SC_PRECONDITION_FAILED);
+        }
+        else
+        {
+            resp.sendError( SC_PRECONDITION_FAILED );
         }
     }
 
@@ -267,49 +331,60 @@ public class DoLock extends AbstractMethod {
     /**
      * Executes the LOCK
      */
-    private void executeLock(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws LockFailedException, IOException,
-            ServletException {
+    private void executeLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws LockFailedException, IOException, WebDavException
+    {
 
         // Mac OS lock request workaround
-        if (_macLockRequest) {
-            LOG.trace("DoLock.execute() : do workaround for user agent '"
-                    + _userAgent + "'");
+        if ( _macLockRequest )
+        {
+            LOG.trace( "DoLock.execute() : do workaround for user agent '" + _userAgent + "'" );
 
-            doMacLockRequestWorkaround(transaction, req, resp);
-        } else {
+            doMacLockRequestWorkaround( transaction, req, resp );
+        }
+        else
+        {
             // Getting LockInformation from request
-            if (getLockInformation(transaction, req, resp)) {
-                int depth = getDepth(req);
-                int lockDuration = getTimeout(transaction, req);
+            if ( getLockInformation( transaction, req, resp ) )
+            {
+                final int depth = getDepth( req );
+                final int lockDuration = getTimeout( transaction, req );
 
                 boolean lockSuccess = false;
-                if (_exclusive) {
-                    lockSuccess = _resourceLocks.exclusiveLock(transaction,
-                            _path, _lockOwner, depth, lockDuration);
-                } else {
-                    lockSuccess = _resourceLocks.sharedLock(transaction, _path,
-                            _lockOwner, depth, lockDuration);
+                if ( _exclusive )
+                {
+                    lockSuccess = _resourceLocks.exclusiveLock( transaction, _path, _lockOwner, depth, lockDuration );
+                }
+                else
+                {
+                    lockSuccess = _resourceLocks.sharedLock( transaction, _path, _lockOwner, depth, lockDuration );
                 }
 
-                if (lockSuccess) {
+                if ( lockSuccess )
+                {
                     // Locks successfully placed - return information about
-                    LockedObject lo = _resourceLocks.getLockedObjectByPath(
-                            transaction, _path);
-                    if (lo != null) {
-                        generateXMLReport(transaction, resp, lo);
-                    } else {
-                        resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+                    final LockedObject lo = _resourceLocks.getLockedObjectByPath( transaction, _path );
+                    if ( lo != null )
+                    {
+                        generateXMLReport( transaction, resp, lo );
                     }
-                } else {
-                    sendLockFailError(transaction, req, resp);
+                    else
+                    {
+                        resp.sendError( SC_INTERNAL_SERVER_ERROR );
+                    }
+                }
+                else
+                {
+                    sendLockFailError( transaction, req, resp );
 
                     throw new LockFailedException();
                 }
-            } else {
+            }
+            else
+            {
                 // information for LOCK could not be read successfully
-                resp.setContentType("text/xml; charset=UTF-8");
-                resp.sendError(WebdavStatus.SC_BAD_REQUEST);
+                resp.setContentType( "text/xml; charset=UTF-8" );
+                resp.sendError( SC_BAD_REQUEST );
             }
         }
     }
@@ -317,24 +392,25 @@ public class DoLock extends AbstractMethod {
     /**
      * Tries to get the LockInformation from LOCK request
      */
-    private boolean getLockInformation(ITransaction transaction,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+    private boolean getLockInformation( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws WebDavException, IOException
+    {
 
         Node lockInfoNode = null;
         DocumentBuilder documentBuilder = null;
 
         documentBuilder = getDocumentBuilder();
-        try {
-            Document document = documentBuilder.parse(new InputSource(req
-                    .getInputStream()));
+        try
+        {
+            final Document document = documentBuilder.parse( new InputSource( req.getInputStream() ) );
 
             // Get the root element of the document
-            Element rootElement = document.getDocumentElement();
+            final Element rootElement = document.getDocumentElement();
 
             lockInfoNode = rootElement;
 
-            if (lockInfoNode != null) {
+            if ( lockInfoNode != null )
+            {
                 NodeList childList = lockInfoNode.getChildNodes();
                 Node lockScopeNode = null;
                 Node lockTypeNode = null;
@@ -343,98 +419,131 @@ public class DoLock extends AbstractMethod {
                 Node currentNode = null;
                 String nodeName = null;
 
-                for (int i = 0; i < childList.getLength(); i++) {
-                    currentNode = childList.item(i);
+                for ( int i = 0; i < childList.getLength(); i++ )
+                {
+                    currentNode = childList.item( i );
 
-                    if (currentNode.getNodeType() == Node.ELEMENT_NODE
-                            || currentNode.getNodeType() == Node.TEXT_NODE) {
+                    if ( currentNode.getNodeType() == Node.ELEMENT_NODE || currentNode.getNodeType() == Node.TEXT_NODE )
+                    {
 
                         nodeName = currentNode.getNodeName();
 
-                        if (nodeName.endsWith("locktype")) {
+                        if ( nodeName.endsWith( "locktype" ) )
+                        {
                             lockTypeNode = currentNode;
                         }
-                        if (nodeName.endsWith("lockscope")) {
+                        if ( nodeName.endsWith( "lockscope" ) )
+                        {
                             lockScopeNode = currentNode;
                         }
-                        if (nodeName.endsWith("owner")) {
+                        if ( nodeName.endsWith( "owner" ) )
+                        {
                             lockOwnerNode = currentNode;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         return false;
                     }
                 }
 
-                if (lockScopeNode != null) {
+                if ( lockScopeNode != null )
+                {
                     String scope = null;
                     childList = lockScopeNode.getChildNodes();
-                    for (int i = 0; i < childList.getLength(); i++) {
-                        currentNode = childList.item(i);
+                    for ( int i = 0; i < childList.getLength(); i++ )
+                    {
+                        currentNode = childList.item( i );
 
-                        if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
+                        if ( currentNode.getNodeType() == Node.ELEMENT_NODE )
+                        {
                             scope = currentNode.getNodeName();
 
-                            if (scope.endsWith("exclusive")) {
+                            if ( scope.endsWith( "exclusive" ) )
+                            {
                                 _exclusive = true;
-                            } else if (scope.equals("shared")) {
+                            }
+                            else if ( scope.equals( "shared" ) )
+                            {
                                 _exclusive = false;
                             }
                         }
                     }
-                    if (scope == null) {
+                    if ( scope == null )
+                    {
                         return false;
                     }
 
-                } else {
+                }
+                else
+                {
                     return false;
                 }
 
-                if (lockTypeNode != null) {
+                if ( lockTypeNode != null )
+                {
                     childList = lockTypeNode.getChildNodes();
-                    for (int i = 0; i < childList.getLength(); i++) {
-                        currentNode = childList.item(i);
+                    for ( int i = 0; i < childList.getLength(); i++ )
+                    {
+                        currentNode = childList.item( i );
 
-                        if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
+                        if ( currentNode.getNodeType() == Node.ELEMENT_NODE )
+                        {
                             _type = currentNode.getNodeName();
 
-                            if (_type.endsWith("write")) {
+                            if ( _type.endsWith( "write" ) )
+                            {
                                 _type = "write";
-                            } else if (_type.equals("read")) {
+                            }
+                            else if ( _type.equals( "read" ) )
+                            {
                                 _type = "read";
                             }
                         }
                     }
-                    if (_type == null) {
+                    if ( _type == null )
+                    {
                         return false;
                     }
-                } else {
+                }
+                else
+                {
                     return false;
                 }
 
-                if (lockOwnerNode != null) {
+                if ( lockOwnerNode != null )
+                {
                     childList = lockOwnerNode.getChildNodes();
-                    for (int i = 0; i < childList.getLength(); i++) {
-                        currentNode = childList.item(i);
+                    for ( int i = 0; i < childList.getLength(); i++ )
+                    {
+                        currentNode = childList.item( i );
 
-                        if (currentNode.getNodeType() == Node.ELEMENT_NODE
-                             || currentNode.getNodeType() == Node.TEXT_NODE ) {
+                        if ( currentNode.getNodeType() == Node.ELEMENT_NODE || currentNode.getNodeType() == Node.TEXT_NODE )
+                        {
                             _lockOwner = currentNode.getTextContent();
                         }
                     }
                 }
-                if (_lockOwner == null) {
+                if ( _lockOwner == null )
+                {
                     return false;
                 }
-            } else {
+            }
+            else
+            {
                 return false;
             }
 
-        } catch (DOMException e) {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+        catch ( final DOMException e )
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
             e.printStackTrace();
             return false;
-        } catch (SAXException e) {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+        catch ( final SAXException e )
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
             e.printStackTrace();
             return false;
         }
@@ -445,37 +554,52 @@ public class DoLock extends AbstractMethod {
     /**
      * Ties to read the timeout from request
      */
-    private int getTimeout(ITransaction transaction, HttpServletRequest req) {
+    private int getTimeout( final ITransaction transaction, final HttpServletRequest req )
+    {
 
         int lockDuration = DEFAULT_TIMEOUT;
-        String lockDurationStr = req.getHeader("Timeout");
+        String lockDurationStr = req.getHeader( "Timeout" );
 
-        if (lockDurationStr == null) {
+        if ( lockDurationStr == null )
+        {
             lockDuration = DEFAULT_TIMEOUT;
-        } else {
-            int commaPos = lockDurationStr.indexOf(',');
+        }
+        else
+        {
+            final int commaPos = lockDurationStr.indexOf( ',' );
             // if multiple timeouts, just use the first one
-            if (commaPos != -1) {
-                lockDurationStr = lockDurationStr.substring(0, commaPos);
+            if ( commaPos != -1 )
+            {
+                lockDurationStr = lockDurationStr.substring( 0, commaPos );
             }
-            if (lockDurationStr.startsWith("Second-")) {
-                lockDuration = new Integer(lockDurationStr.substring(7))
-                        .intValue();
-            } else {
-                if (lockDurationStr.equalsIgnoreCase("infinity")) {
+            if ( lockDurationStr.startsWith( "Second-" ) )
+            {
+                lockDuration = new Integer( lockDurationStr.substring( 7 ) ).intValue();
+            }
+            else
+            {
+                if ( lockDurationStr.equalsIgnoreCase( "infinity" ) )
+                {
                     lockDuration = MAX_TIMEOUT;
-                } else {
-                    try {
-                        lockDuration = new Integer(lockDurationStr).intValue();
-                    } catch (NumberFormatException e) {
+                }
+                else
+                {
+                    try
+                    {
+                        lockDuration = new Integer( lockDurationStr ).intValue();
+                    }
+                    catch ( final NumberFormatException e )
+                    {
                         lockDuration = MAX_TIMEOUT;
                     }
                 }
             }
-            if (lockDuration <= 0) {
+            if ( lockDuration <= 0 )
+            {
                 lockDuration = DEFAULT_TIMEOUT;
             }
-            if (lockDuration > MAX_TIMEOUT) {
+            if ( lockDuration > MAX_TIMEOUT )
+            {
                 lockDuration = MAX_TIMEOUT;
             }
         }
@@ -485,66 +609,73 @@ public class DoLock extends AbstractMethod {
     /**
      * Generates the response XML with all lock information
      */
-    private void generateXMLReport(ITransaction transaction,
-            HttpServletResponse resp, LockedObject lo) throws IOException {
+    private void generateXMLReport( final ITransaction transaction, final HttpServletResponse resp, final LockedObject lo )
+        throws IOException
+    {
 
-        HashMap<String, String> namespaces = new HashMap<String, String>();
-        namespaces.put("DAV:", "D");
+        final HashMap<String, String> namespaces = new HashMap<String, String>();
+        namespaces.put( "DAV:", "D" );
 
-        resp.setStatus(WebdavStatus.SC_OK);
-        resp.setContentType("text/xml; charset=UTF-8");
+        resp.setStatus( SC_OK );
+        resp.setContentType( "text/xml; charset=UTF-8" );
 
-        XMLWriter generatedXML = new XMLWriter(resp.getWriter(), namespaces);
+        final XMLWriter generatedXML = new XMLWriter( resp.getWriter(), namespaces );
         generatedXML.writeXMLHeader();
-        generatedXML.writeElement("DAV::prop", XMLWriter.OPENING);
-        generatedXML.writeElement("DAV::lockdiscovery", XMLWriter.OPENING);
-        generatedXML.writeElement("DAV::activelock", XMLWriter.OPENING);
+        generatedXML.writeElement( "DAV::prop", XMLWriter.OPENING );
+        generatedXML.writeElement( "DAV::lockdiscovery", XMLWriter.OPENING );
+        generatedXML.writeElement( "DAV::activelock", XMLWriter.OPENING );
 
-        generatedXML.writeElement("DAV::locktype", XMLWriter.OPENING);
-        generatedXML.writeProperty("DAV::" + _type);
-        generatedXML.writeElement("DAV::locktype", XMLWriter.CLOSING);
+        generatedXML.writeElement( "DAV::locktype", XMLWriter.OPENING );
+        generatedXML.writeProperty( "DAV::" + _type );
+        generatedXML.writeElement( "DAV::locktype", XMLWriter.CLOSING );
 
-        generatedXML.writeElement("DAV::lockscope", XMLWriter.OPENING);
-        if (_exclusive) {
-            generatedXML.writeProperty("DAV::exclusive");
-        } else {
-            generatedXML.writeProperty("DAV::shared");
+        generatedXML.writeElement( "DAV::lockscope", XMLWriter.OPENING );
+        if ( _exclusive )
+        {
+            generatedXML.writeProperty( "DAV::exclusive" );
         }
-        generatedXML.writeElement("DAV::lockscope", XMLWriter.CLOSING);
-
-        int depth = lo.getLockDepth();
-
-        generatedXML.writeElement("DAV::depth", XMLWriter.OPENING);
-        if (depth == INFINITY) {
-            generatedXML.writeText("Infinity");
-        } else {
-            generatedXML.writeText(String.valueOf(depth));
+        else
+        {
+            generatedXML.writeProperty( "DAV::shared" );
         }
-        generatedXML.writeElement("DAV::depth", XMLWriter.CLOSING);
+        generatedXML.writeElement( "DAV::lockscope", XMLWriter.CLOSING );
 
-        generatedXML.writeElement("DAV::owner", XMLWriter.OPENING);
-        generatedXML.writeElement("DAV::href", XMLWriter.OPENING);
-        generatedXML.writeText(_lockOwner);
-        generatedXML.writeElement("DAV::href", XMLWriter.CLOSING);
-        generatedXML.writeElement("DAV::owner", XMLWriter.CLOSING);
+        final int depth = lo.getLockDepth();
 
-        long timeout = lo.getTimeoutMillis();
-        generatedXML.writeElement("DAV::timeout", XMLWriter.OPENING);
-        generatedXML.writeText("Second-" + timeout / 1000);
-        generatedXML.writeElement("DAV::timeout", XMLWriter.CLOSING);
+        generatedXML.writeElement( "DAV::depth", XMLWriter.OPENING );
+        if ( depth == INFINITY )
+        {
+            generatedXML.writeText( "Infinity" );
+        }
+        else
+        {
+            generatedXML.writeText( String.valueOf( depth ) );
+        }
+        generatedXML.writeElement( "DAV::depth", XMLWriter.CLOSING );
 
-        String lockToken = lo.getID();
-        generatedXML.writeElement("DAV::locktoken", XMLWriter.OPENING);
-        generatedXML.writeElement("DAV::href", XMLWriter.OPENING);
-        generatedXML.writeText("opaquelocktoken:" + lockToken);
-        generatedXML.writeElement("DAV::href", XMLWriter.CLOSING);
-        generatedXML.writeElement("DAV::locktoken", XMLWriter.CLOSING);
+        generatedXML.writeElement( "DAV::owner", XMLWriter.OPENING );
+        generatedXML.writeElement( "DAV::href", XMLWriter.OPENING );
+        generatedXML.writeText( _lockOwner );
+        generatedXML.writeElement( "DAV::href", XMLWriter.CLOSING );
+        generatedXML.writeElement( "DAV::owner", XMLWriter.CLOSING );
 
-        generatedXML.writeElement("DAV::activelock", XMLWriter.CLOSING);
-        generatedXML.writeElement("DAV::lockdiscovery", XMLWriter.CLOSING);
-        generatedXML.writeElement("DAV::prop", XMLWriter.CLOSING);
+        final long timeout = lo.getTimeoutMillis();
+        generatedXML.writeElement( "DAV::timeout", XMLWriter.OPENING );
+        generatedXML.writeText( "Second-" + timeout / 1000 );
+        generatedXML.writeElement( "DAV::timeout", XMLWriter.CLOSING );
 
-        resp.addHeader("Lock-Token", "<opaquelocktoken:" + lockToken + ">");
+        final String lockToken = lo.getID();
+        generatedXML.writeElement( "DAV::locktoken", XMLWriter.OPENING );
+        generatedXML.writeElement( "DAV::href", XMLWriter.OPENING );
+        generatedXML.writeText( "opaquelocktoken:" + lockToken );
+        generatedXML.writeElement( "DAV::href", XMLWriter.CLOSING );
+        generatedXML.writeElement( "DAV::locktoken", XMLWriter.CLOSING );
+
+        generatedXML.writeElement( "DAV::activelock", XMLWriter.CLOSING );
+        generatedXML.writeElement( "DAV::lockdiscovery", XMLWriter.CLOSING );
+        generatedXML.writeElement( "DAV::prop", XMLWriter.CLOSING );
+
+        resp.addHeader( "Lock-Token", "<opaquelocktoken:" + lockToken + ">" );
 
         generatedXML.sendData();
 
@@ -553,42 +684,49 @@ public class DoLock extends AbstractMethod {
     /**
      * Executes the lock for a Mac OS Finder client
      */
-    private void doMacLockRequestWorkaround(ITransaction transaction,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws LockFailedException, IOException {
+    private void doMacLockRequestWorkaround( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws LockFailedException, IOException
+    {
         LockedObject lo;
-        int depth = getDepth(req);
-        int lockDuration = getTimeout(transaction, req);
-        if (lockDuration < 0 || lockDuration > MAX_TIMEOUT)
+        final int depth = getDepth( req );
+        int lockDuration = getTimeout( transaction, req );
+        if ( lockDuration < 0 || lockDuration > MAX_TIMEOUT )
+        {
             lockDuration = DEFAULT_TIMEOUT;
+        }
 
         boolean lockSuccess = false;
-        lockSuccess = _resourceLocks.exclusiveLock(transaction, _path,
-                _lockOwner, depth, lockDuration);
+        lockSuccess = _resourceLocks.exclusiveLock( transaction, _path, _lockOwner, depth, lockDuration );
 
-        if (lockSuccess) {
+        if ( lockSuccess )
+        {
             // Locks successfully placed - return information about
-            lo = _resourceLocks.getLockedObjectByPath(transaction, _path);
-            if (lo != null) {
-                generateXMLReport(transaction, resp, lo);
-            } else {
-                resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+            lo = _resourceLocks.getLockedObjectByPath( transaction, _path );
+            if ( lo != null )
+            {
+                generateXMLReport( transaction, resp, lo );
             }
-        } else {
+            else
+            {
+                resp.sendError( SC_INTERNAL_SERVER_ERROR );
+            }
+        }
+        else
+        {
             // Locking was not successful
-            sendLockFailError(transaction, req, resp);
+            sendLockFailError( transaction, req, resp );
         }
     }
 
     /**
      * Sends an error report to the client
      */
-    private void sendLockFailError(ITransaction transaction,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        Hashtable<String, Integer> errorList = new Hashtable<String, Integer>();
-        errorList.put(_path, WebdavStatus.SC_LOCKED);
-        sendReport(req, resp, errorList);
+    private void sendLockFailError( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException
+    {
+        final Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
+        errorList.put( _path, SC_LOCKED );
+        sendReport( req, resp, errorList );
     }
 
 }

@@ -15,11 +15,15 @@
  */
 package net.sf.webdav.methods;
 
+import static net.sf.webdav.WebdavStatus.SC_CONFLICT;
+import static net.sf.webdav.WebdavStatus.SC_FORBIDDEN;
+import static net.sf.webdav.WebdavStatus.SC_INTERNAL_SERVER_ERROR;
+import static net.sf.webdav.WebdavStatus.SC_LOCKED;
+import static net.sf.webdav.WebdavStatus.SC_METHOD_NOT_ALLOWED;
+import static net.sf.webdav.WebdavStatus.SC_NOT_FOUND;
+
 import java.io.IOException;
 import java.util.Hashtable;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import net.sf.webdav.ITransaction;
 import net.sf.webdav.IWebdavStore;
@@ -32,59 +36,82 @@ import net.sf.webdav.exceptions.ObjectNotFoundException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.fromcatalina.RequestUtil;
 import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.spi.HttpServletRequest;
+import net.sf.webdav.spi.HttpServletResponse;
 
-public class DoCopy extends AbstractMethod {
+public class DoCopy
+    extends AbstractMethod
+{
 
-    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory
-            .getLogger(DoCopy.class);
+    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoCopy.class );
 
-    private IWebdavStore _store;
-    private ResourceLocks _resourceLocks;
-    private DoDelete _doDelete;
-    private boolean _readOnly;
+    private final IWebdavStore _store;
 
-    public DoCopy(IWebdavStore store, ResourceLocks resourceLocks,
-            DoDelete doDelete, boolean readOnly) {
+    private final ResourceLocks _resourceLocks;
+
+    private final DoDelete _doDelete;
+
+    private final boolean _readOnly;
+
+    public DoCopy( final IWebdavStore store, final ResourceLocks resourceLocks, final DoDelete doDelete, final boolean readOnly )
+    {
         _store = store;
         _resourceLocks = resourceLocks;
         _doDelete = doDelete;
         _readOnly = readOnly;
     }
 
-    public void execute(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException, LockFailedException {
-        LOG.trace("-- " + this.getClass().getName());
+    @Override
+    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException, LockFailedException
+    {
+        LOG.trace( "-- " + this.getClass()
+                               .getName() );
 
-        String path = getRelativePath(req);
-        if (!_readOnly) {
+        final String path = getRelativePath( req );
+        if ( !_readOnly )
+        {
 
-            String tempLockOwner = "doCopy" + System.currentTimeMillis()
-                    + req.toString();
-            if (_resourceLocks.lock(transaction, path, tempLockOwner, false, 0,
-                    TEMP_TIMEOUT, TEMPORARY)) {
-                try {
-                    if (!copyResource(transaction, req, resp))
+            final String tempLockOwner = "doCopy" + System.currentTimeMillis() + req.toString();
+            if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+            {
+                try
+                {
+                    if ( !copyResource( transaction, req, resp ) )
+                    {
                         return;
-                } catch (AccessDeniedException e) {
-                    resp.sendError(WebdavStatus.SC_FORBIDDEN);
-                } catch (ObjectAlreadyExistsException e) {
-                    resp.sendError(WebdavStatus.SC_CONFLICT, req
-                            .getRequestURI());
-                } catch (ObjectNotFoundException e) {
-                    resp.sendError(WebdavStatus.SC_NOT_FOUND, req
-                            .getRequestURI());
-                } catch (WebdavException e) {
-                    resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
-                } finally {
-                    _resourceLocks.unlockTemporaryLockedObjects(transaction,
-                            path, tempLockOwner);
+                    }
                 }
-            } else {
-                resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+                catch ( final AccessDeniedException e )
+                {
+                    resp.sendError( WebdavStatus.SC_FORBIDDEN );
+                }
+                catch ( final ObjectAlreadyExistsException e )
+                {
+                    resp.sendError( WebdavStatus.SC_CONFLICT, req.getRequestURI() );
+                }
+                catch ( final ObjectNotFoundException e )
+                {
+                    resp.sendError( WebdavStatus.SC_NOT_FOUND, req.getRequestURI() );
+                }
+                catch ( final WebdavException e )
+                {
+                    resp.sendError( WebdavStatus.SC_INTERNAL_SERVER_ERROR );
+                }
+                finally
+                {
+                    _resourceLocks.unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
+                }
+            }
+            else
+            {
+                resp.sendError( WebdavStatus.SC_INTERNAL_SERVER_ERROR );
             }
 
-        } else {
-            resp.sendError(WebdavStatus.SC_FORBIDDEN);
+        }
+        else
+        {
+            resp.sendError( WebdavStatus.SC_FORBIDDEN );
         }
 
     }
@@ -106,109 +133,126 @@ public class DoCopy extends AbstractMethod {
      *      when an error occurs while sending the response
      * @throws LockFailedException
      */
-    public boolean copyResource(ITransaction transaction,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws WebdavException, IOException, LockFailedException {
+    public boolean copyResource( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+        throws WebdavException, IOException, LockFailedException
+    {
 
         // Parsing destination header
-        String destinationPath = parseDestinationHeader(req, resp);
+        final String destinationPath = parseDestinationHeader( req, resp );
 
-        if (destinationPath == null)
-            return false;
-
-        String path = getRelativePath(req);
-
-        if (path.equals(destinationPath)) {
-            resp.sendError(WebdavStatus.SC_FORBIDDEN);
+        if ( destinationPath == null )
+        {
             return false;
         }
 
-        Hashtable<String, Integer> errorList = new Hashtable<String, Integer>();
-        String parentDestinationPath = getParentPath(getCleanPath(destinationPath));
+        final String path = getRelativePath( req );
 
-        if (!checkLocks(transaction, req, resp, _resourceLocks,
-                parentDestinationPath)) {
-            errorList.put(parentDestinationPath, WebdavStatus.SC_LOCKED);
-            sendReport(req, resp, errorList);
+        if ( path.equals( destinationPath ) )
+        {
+            resp.sendError( WebdavStatus.SC_FORBIDDEN );
+            return false;
+        }
+
+        Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
+        final String parentDestinationPath = getParentPath( getCleanPath( destinationPath ) );
+
+        if ( !checkLocks( transaction, req, resp, _resourceLocks, parentDestinationPath ) )
+        {
+            errorList.put( parentDestinationPath, SC_LOCKED );
+            sendReport( req, resp, errorList );
             return false; // parentDestination is locked
         }
 
-        if (!checkLocks(transaction, req, resp, _resourceLocks, destinationPath)) {
-            errorList.put(destinationPath, WebdavStatus.SC_LOCKED);
-            sendReport(req, resp, errorList);
+        if ( !checkLocks( transaction, req, resp, _resourceLocks, destinationPath ) )
+        {
+            errorList.put( destinationPath, SC_LOCKED );
+            sendReport( req, resp, errorList );
             return false; // destination is locked
         }
 
         // Parsing overwrite header
 
         boolean overwrite = true;
-        String overwriteHeader = req.getHeader("Overwrite");
+        final String overwriteHeader = req.getHeader( "Overwrite" );
 
-        if (overwriteHeader != null) {
-            overwrite = overwriteHeader.equalsIgnoreCase("T");
+        if ( overwriteHeader != null )
+        {
+            overwrite = overwriteHeader.equalsIgnoreCase( "T" );
         }
 
         // Overwriting the destination
-        String lockOwner = "copyResource" + System.currentTimeMillis()
-                + req.toString();
+        final String lockOwner = "copyResource" + System.currentTimeMillis() + req.toString();
 
-        if (_resourceLocks.lock(transaction, destinationPath, lockOwner, false,
-                0, TEMP_TIMEOUT, TEMPORARY)) {
+        if ( _resourceLocks.lock( transaction, destinationPath, lockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+        {
             StoredObject copySo, destinationSo = null;
-            try {
-                copySo = _store.getStoredObject(transaction, path);
+            try
+            {
+                copySo = _store.getStoredObject( transaction, path );
                 // Retrieve the resources
-                if (copySo == null) {
-                    resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+                if ( copySo == null )
+                {
+                    resp.sendError( SC_NOT_FOUND );
                     return false;
                 }
 
-                if (copySo.isNullResource()) {
-                    String methodsAllowed = DeterminableMethod
-                            .determineMethodsAllowed(copySo);
-                    resp.addHeader("Allow", methodsAllowed);
-                    resp.sendError(WebdavStatus.SC_METHOD_NOT_ALLOWED);
+                if ( copySo.isNullResource() )
+                {
+                    final String methodsAllowed = DeterminableMethod.determineMethodsAllowed( copySo );
+                    resp.addHeader( "Allow", methodsAllowed );
+                    resp.sendError( SC_METHOD_NOT_ALLOWED );
                     return false;
                 }
 
-                errorList = new Hashtable<String, Integer>();
+                errorList = new Hashtable<String, WebdavStatus>();
 
-                destinationSo = _store.getStoredObject(transaction,
-                        destinationPath);
+                destinationSo = _store.getStoredObject( transaction, destinationPath );
 
-                if (overwrite) {
+                if ( overwrite )
+                {
 
                     // Delete destination resource, if it exists
-                    if (destinationSo != null) {
-                        _doDelete.deleteResource(transaction, destinationPath,
-                                errorList, req, resp);
+                    if ( destinationSo != null )
+                    {
+                        _doDelete.deleteResource( transaction, destinationPath, errorList, req, resp );
 
-                    } else {
-                        resp.setStatus(WebdavStatus.SC_CREATED);
                     }
-                } else {
+                    else
+                    {
+                        resp.setStatus( WebdavStatus.SC_CREATED );
+                    }
+                }
+                else
+                {
 
                     // If the destination exists, then it's a conflict
-                    if (destinationSo != null) {
-                        resp.sendError(WebdavStatus.SC_PRECONDITION_FAILED);
+                    if ( destinationSo != null )
+                    {
+                        resp.sendError( WebdavStatus.SC_PRECONDITION_FAILED );
                         return false;
-                    } else {
-                        resp.setStatus(WebdavStatus.SC_CREATED);
+                    }
+                    else
+                    {
+                        resp.setStatus( WebdavStatus.SC_CREATED );
                     }
 
                 }
-                copy(transaction, path, destinationPath, errorList, req, resp);
+                copy( transaction, path, destinationPath, errorList, req, resp );
 
-                if (!errorList.isEmpty()) {
-                    sendReport(req, resp, errorList);
+                if ( !errorList.isEmpty() )
+                {
+                    sendReport( req, resp, errorList );
                 }
 
-            } finally {
-                _resourceLocks.unlockTemporaryLockedObjects(transaction,
-                        destinationPath, lockOwner);
             }
-        } else {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+            finally
+            {
+                _resourceLocks.unlockTemporaryLockedObjects( transaction, destinationPath, lockOwner );
+            }
+        }
+        else
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
             return false;
         }
         return true;
@@ -236,31 +280,35 @@ public class DoCopy extends AbstractMethod {
      *      if an error in the underlying store occurs
      * @throws IOException
      */
-    private void copy(ITransaction transaction, String sourcePath,
-            String destinationPath, Hashtable<String, Integer> errorList,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws WebdavException, IOException {
+    private void copy( final ITransaction transaction, final String sourcePath, final String destinationPath,
+                       final Hashtable<String, WebdavStatus> errorList, final HttpServletRequest req, final HttpServletResponse resp )
+        throws WebdavException, IOException
+    {
 
-        StoredObject sourceSo = _store.getStoredObject(transaction, sourcePath);
-        if (sourceSo.isResource()) {
-            _store.createResource(transaction, destinationPath);
-            long resourceLength = _store.setResourceContent(transaction,
-                    destinationPath, _store.getResourceContent(transaction,
-                            sourcePath), null, null);
+        final StoredObject sourceSo = _store.getStoredObject( transaction, sourcePath );
+        if ( sourceSo.isResource() )
+        {
+            _store.createResource( transaction, destinationPath );
+            final long resourceLength =
+                _store.setResourceContent( transaction, destinationPath, _store.getResourceContent( transaction, sourcePath ), null, null );
 
-            if (resourceLength != -1) {
-                StoredObject destinationSo = _store.getStoredObject(
-                        transaction, destinationPath);
-                destinationSo.setResourceLength(resourceLength);
+            if ( resourceLength != -1 )
+            {
+                final StoredObject destinationSo = _store.getStoredObject( transaction, destinationPath );
+                destinationSo.setResourceLength( resourceLength );
             }
 
-        } else {
+        }
+        else
+        {
 
-            if (sourceSo.isFolder()) {
-                copyFolder(transaction, sourcePath, destinationPath, errorList,
-                        req, resp);
-            } else {
-                resp.sendError(WebdavStatus.SC_NOT_FOUND);
+            if ( sourceSo.isFolder() )
+            {
+                copyFolder( transaction, sourcePath, destinationPath, errorList, req, resp );
+            }
+            else
+            {
+                resp.sendError( WebdavStatus.SC_NOT_FOUND );
             }
         }
     }
@@ -285,62 +333,67 @@ public class DoCopy extends AbstractMethod {
      * @throws WebdavException
      *      if an error in the underlying store occurs
      */
-    private void copyFolder(ITransaction transaction, String sourcePath,
-            String destinationPath, Hashtable<String, Integer> errorList,
-            HttpServletRequest req, HttpServletResponse resp)
-            throws WebdavException {
+    private void copyFolder( final ITransaction transaction, final String sourcePath, final String destinationPath,
+                             final Hashtable<String, WebdavStatus> errorList, final HttpServletRequest req, final HttpServletResponse resp )
+        throws WebdavException
+    {
 
-        _store.createFolder(transaction, destinationPath);
+        _store.createFolder( transaction, destinationPath );
         boolean infiniteDepth = true;
-        String depth = req.getHeader("Depth");
-        if (depth != null) {
-            if (depth.equals("0")) {
+        final String depth = req.getHeader( "Depth" );
+        if ( depth != null )
+        {
+            if ( depth.equals( "0" ) )
+            {
                 infiniteDepth = false;
             }
         }
-        if (infiniteDepth) {
-            String[] children = _store
-                    .getChildrenNames(transaction, sourcePath);
+        if ( infiniteDepth )
+        {
+            String[] children = _store.getChildrenNames( transaction, sourcePath );
             children = children == null ? new String[] {} : children;
 
             StoredObject childSo;
-            for (int i = children.length - 1; i >= 0; i--) {
+            for ( int i = children.length - 1; i >= 0; i-- )
+            {
                 children[i] = "/" + children[i];
-                try {
-                    childSo = _store.getStoredObject(transaction,
-                            (sourcePath + children[i]));
-                    if (childSo.isResource()) {
-                        _store.createResource(transaction, destinationPath
-                                + children[i]);
-                        long resourceLength = _store.setResourceContent(
-                                transaction, destinationPath + children[i],
-                                _store.getResourceContent(transaction,
-                                        sourcePath + children[i]), null, null);
+                try
+                {
+                    childSo = _store.getStoredObject( transaction, ( sourcePath + children[i] ) );
+                    if ( childSo.isResource() )
+                    {
+                        _store.createResource( transaction, destinationPath + children[i] );
+                        final long resourceLength =
+                            _store.setResourceContent( transaction, destinationPath + children[i],
+                                                       _store.getResourceContent( transaction, sourcePath + children[i] ), null, null );
 
-                        if (resourceLength != -1) {
-                            StoredObject destinationSo = _store
-                                    .getStoredObject(transaction,
-                                            destinationPath + children[i]);
-                            destinationSo.setResourceLength(resourceLength);
+                        if ( resourceLength != -1 )
+                        {
+                            final StoredObject destinationSo = _store.getStoredObject( transaction, destinationPath + children[i] );
+                            destinationSo.setResourceLength( resourceLength );
                         }
 
-                    } else {
-                        copyFolder(transaction, sourcePath + children[i],
-                                destinationPath + children[i], errorList, req,
-                                resp);
                     }
-                } catch (AccessDeniedException e) {
-                    errorList.put(destinationPath + children[i], new Integer(
-                            WebdavStatus.SC_FORBIDDEN));
-                } catch (ObjectNotFoundException e) {
-                    errorList.put(destinationPath + children[i], new Integer(
-                            WebdavStatus.SC_NOT_FOUND));
-                } catch (ObjectAlreadyExistsException e) {
-                    errorList.put(destinationPath + children[i], new Integer(
-                            WebdavStatus.SC_CONFLICT));
-                } catch (WebdavException e) {
-                    errorList.put(destinationPath + children[i], new Integer(
-                            WebdavStatus.SC_INTERNAL_SERVER_ERROR));
+                    else
+                    {
+                        copyFolder( transaction, sourcePath + children[i], destinationPath + children[i], errorList, req, resp );
+                    }
+                }
+                catch ( final AccessDeniedException e )
+                {
+                    errorList.put( destinationPath + children[i], SC_FORBIDDEN );
+                }
+                catch ( final ObjectNotFoundException e )
+                {
+                    errorList.put( destinationPath + children[i], SC_NOT_FOUND );
+                }
+                catch ( final ObjectAlreadyExistsException e )
+                {
+                    errorList.put( destinationPath + children[i], SC_CONFLICT );
+                }
+                catch ( final WebdavException e )
+                {
+                    errorList.put( destinationPath + children[i], SC_INTERNAL_SERVER_ERROR );
                 }
             }
         }
@@ -357,65 +410,79 @@ public class DoCopy extends AbstractMethod {
      * @throws IOException
      *      if an error occurs while sending response
      */
-    private String parseDestinationHeader(HttpServletRequest req,
-            HttpServletResponse resp) throws IOException {
-        String destinationPath = req.getHeader("Destination");
+    private String parseDestinationHeader( final HttpServletRequest req, final HttpServletResponse resp )
+        throws IOException
+    {
+        String destinationPath = req.getHeader( "Destination" );
 
-        if (destinationPath == null) {
-            resp.sendError(WebdavStatus.SC_BAD_REQUEST);
+        if ( destinationPath == null )
+        {
+            resp.sendError( WebdavStatus.SC_BAD_REQUEST );
             return null;
         }
 
         // Remove url encoding from destination
-        destinationPath = RequestUtil.URLDecode(destinationPath, "UTF8");
+        destinationPath = RequestUtil.URLDecode( destinationPath, "UTF8" );
 
-        int protocolIndex = destinationPath.indexOf("://");
-        if (protocolIndex >= 0) {
+        final int protocolIndex = destinationPath.indexOf( "://" );
+        if ( protocolIndex >= 0 )
+        {
             // if the Destination URL contains the protocol, we can safely
             // trim everything upto the first "/" character after "://"
-            int firstSeparator = destinationPath
-                    .indexOf("/", protocolIndex + 4);
-            if (firstSeparator < 0) {
+            final int firstSeparator = destinationPath.indexOf( "/", protocolIndex + 4 );
+            if ( firstSeparator < 0 )
+            {
                 destinationPath = "/";
-            } else {
-                destinationPath = destinationPath.substring(firstSeparator);
             }
-        } else {
-            String hostName = req.getServerName();
-            if ((hostName != null) && (destinationPath.startsWith(hostName))) {
-                destinationPath = destinationPath.substring(hostName.length());
+            else
+            {
+                destinationPath = destinationPath.substring( firstSeparator );
+            }
+        }
+        else
+        {
+            final String hostName = req.getServerName();
+            if ( ( hostName != null ) && ( destinationPath.startsWith( hostName ) ) )
+            {
+                destinationPath = destinationPath.substring( hostName.length() );
             }
 
-            int portIndex = destinationPath.indexOf(":");
-            if (portIndex >= 0) {
-                destinationPath = destinationPath.substring(portIndex);
+            final int portIndex = destinationPath.indexOf( ":" );
+            if ( portIndex >= 0 )
+            {
+                destinationPath = destinationPath.substring( portIndex );
             }
 
-            if (destinationPath.startsWith(":")) {
-                int firstSeparator = destinationPath.indexOf("/");
-                if (firstSeparator < 0) {
+            if ( destinationPath.startsWith( ":" ) )
+            {
+                final int firstSeparator = destinationPath.indexOf( "/" );
+                if ( firstSeparator < 0 )
+                {
                     destinationPath = "/";
-                } else {
-                    destinationPath = destinationPath.substring(firstSeparator);
+                }
+                else
+                {
+                    destinationPath = destinationPath.substring( firstSeparator );
                 }
             }
         }
 
         // Normalize destination path (remove '.' and' ..')
-        destinationPath = normalize(destinationPath);
+        destinationPath = normalize( destinationPath );
 
-        String contextPath = req.getContextPath();
-        if ((contextPath != null) && (destinationPath.startsWith(contextPath))) {
-            destinationPath = destinationPath.substring(contextPath.length());
+        final String contextPath = req.getContextPath();
+        if ( ( contextPath != null ) && ( destinationPath.startsWith( contextPath ) ) )
+        {
+            destinationPath = destinationPath.substring( contextPath.length() );
         }
 
-        String pathInfo = req.getPathInfo();
-        if (pathInfo != null) {
-            String servletPath = req.getServletPath();
-            if ((servletPath != null)
-                    && (destinationPath.startsWith(servletPath))) {
-                destinationPath = destinationPath.substring(servletPath
-                        .length());
+        final String pathInfo = req.getPathInfo();
+        if ( pathInfo != null )
+        {
+            final String servletPath = req.getServletPath();
+            if ( ( servletPath != null ) && ( destinationPath.startsWith( servletPath ) ) )
+            {
+                destinationPath = destinationPath.substring( servletPath.length() );
             }
         }
 
@@ -433,55 +500,72 @@ public class DoCopy extends AbstractMethod {
      *      Path to be normalized
      * @return normalized path
      */
-    protected String normalize(String path) {
+    protected String normalize( final String path )
+    {
 
-        if (path == null)
+        if ( path == null )
+        {
             return null;
+        }
 
         // Create a place for the normalized path
         String normalized = path;
 
-        if (normalized.equals("/."))
+        if ( normalized.equals( "/." ) )
+        {
             return "/";
+        }
 
         // Normalize the slashes and add leading slash if necessary
-        if (normalized.indexOf('\\') >= 0)
-            normalized = normalized.replace('\\', '/');
-        if (!normalized.startsWith("/"))
+        if ( normalized.indexOf( '\\' ) >= 0 )
+        {
+            normalized = normalized.replace( '\\', '/' );
+        }
+        if ( !normalized.startsWith( "/" ) )
+        {
             normalized = "/" + normalized;
+        }
 
         // Resolve occurrences of "//" in the normalized path
-        while (true) {
-            int index = normalized.indexOf("//");
-            if (index < 0)
+        while ( true )
+        {
+            final int index = normalized.indexOf( "//" );
+            if ( index < 0 )
+            {
                 break;
-            normalized = normalized.substring(0, index)
-                    + normalized.substring(index + 1);
+            }
+            normalized = normalized.substring( 0, index ) + normalized.substring( index + 1 );
         }
 
         // Resolve occurrences of "/./" in the normalized path
-        while (true) {
-            int index = normalized.indexOf("/./");
-            if (index < 0)
+        while ( true )
+        {
+            final int index = normalized.indexOf( "/./" );
+            if ( index < 0 )
+            {
                 break;
-            normalized = normalized.substring(0, index)
-                    + normalized.substring(index + 2);
+            }
+            normalized = normalized.substring( 0, index ) + normalized.substring( index + 2 );
         }
 
         // Resolve occurrences of "/../" in the normalized path
-        while (true) {
-            int index = normalized.indexOf("/../");
-            if (index < 0)
+        while ( true )
+        {
+            final int index = normalized.indexOf( "/../" );
+            if ( index < 0 )
+            {
                 break;
-            if (index == 0)
-                return (null); // Trying to go outside our context
-            int index2 = normalized.lastIndexOf('/', index - 1);
-            normalized = normalized.substring(0, index2)
-                    + normalized.substring(index + 3);
+            }
+            if ( index == 0 )
+            {
+                return ( null ); // Trying to go outside our context
+            }
+            final int index2 = normalized.lastIndexOf( '/', index - 1 );
+            normalized = normalized.substring( 0, index2 ) + normalized.substring( index + 3 );
         }
 
         // Return the normalized path that we have completed
-        return (normalized);
+        return ( normalized );
 
     }
 

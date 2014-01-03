@@ -3,8 +3,6 @@ package net.sf.webdav.methods;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import javax.servlet.ServletOutputStream;
-
 import org.junit.Ignore;
 
 @Ignore

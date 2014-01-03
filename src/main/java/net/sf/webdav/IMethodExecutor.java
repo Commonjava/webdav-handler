@@ -17,14 +17,14 @@ package net.sf.webdav;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import net.sf.webdav.exceptions.LockFailedException;
+import net.sf.webdav.spi.HttpServletRequest;
+import net.sf.webdav.spi.HttpServletResponse;
 
-public interface IMethodExecutor {
+public interface IMethodExecutor
+{
 
-    void execute(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException, LockFailedException;
+    void execute( ITransaction transaction, HttpServletRequest req, HttpServletResponse resp )
+        throws IOException, LockFailedException;
 
 }
