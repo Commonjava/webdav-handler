@@ -333,10 +333,12 @@ public class DoCopy
      * @throws WebdavException
      *      if an error in the underlying store occurs
      */
-    private void copyFolder( final ITransaction transaction, final String sourcePath, final String destinationPath,
+    private void copyFolder( final ITransaction transaction, final String srcPath, final String destPath,
                              final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req, final WebdavResponse resp )
         throws WebdavException
     {
+        final String sourcePath = getCleanPath( srcPath );
+        final String destinationPath = getCleanPath( destPath );
 
         _store.createFolder( transaction, destinationPath );
         boolean infiniteDepth = true;
@@ -356,7 +358,8 @@ public class DoCopy
             StoredObject childSo;
             for ( int i = children.length - 1; i >= 0; i-- )
             {
-                children[i] = "/" + children[i];
+                children[i] = ensureLeadingSlash( children[i] );
+
                 try
                 {
                     childSo = _store.getStoredObject( transaction, ( sourcePath + children[i] ) );

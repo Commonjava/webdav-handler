@@ -178,6 +178,16 @@ public abstract class AbstractMethod
         return path;
     }
 
+    protected String ensureLeadingSlash( final String path )
+    {
+        if ( !path.startsWith( "/" ) )
+        {
+            return "/" + path;
+        }
+
+        return path;
+    }
+
     /**
      * Return JAXP document builder instance.
      */

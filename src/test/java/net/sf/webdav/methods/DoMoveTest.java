@@ -75,8 +75,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -162,8 +160,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -227,8 +223,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -317,8 +311,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -376,8 +368,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -427,8 +417,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -539,8 +527,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -603,8 +589,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
     @Test
@@ -686,6 +670,7 @@ public class DoMoveTest
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
+                // failures start here...
                 one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
@@ -727,8 +712,6 @@ public class DoMoveTest
         final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
 
         doMove.execute( mockTransaction, mockReq, mockRes );
-
-        _mockery.assertIsSatisfied();
     }
 
 }

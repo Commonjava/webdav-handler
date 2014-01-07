@@ -8,6 +8,7 @@ import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 
 import org.jmock.Mockery;
+import org.jmock.api.ExpectationError;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -84,7 +85,17 @@ public abstract class MockTest
     public final void assertSatisfiedMockery()
         throws Exception
     {
-        _mockery.assertIsSatisfied();
+        System.out.println( "Checking assertions..." );
+        try
+        {
+            _mockery.assertIsSatisfied();
+        }
+        catch ( final ExpectationError error )
+        {
+            System.out.println( error );
+            System.out.flush();
+            throw new RuntimeException( error.toString() );
+        }
     }
 
     @Before
