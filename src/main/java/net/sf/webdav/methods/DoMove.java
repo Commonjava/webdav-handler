@@ -18,15 +18,15 @@ package net.sf.webdav.methods;
 import java.io.IOException;
 import java.util.Hashtable;
 
-import net.sf.webdav.ITransaction;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
 public class DoMove
     extends AbstractMethod
@@ -51,7 +51,7 @@ public class DoMove
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException, LockFailedException
     {
 

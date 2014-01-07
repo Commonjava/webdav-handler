@@ -18,8 +18,6 @@ package net.sf.webdav.methods;
 import java.io.IOException;
 import java.util.Hashtable;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
@@ -27,8 +25,10 @@ import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
 public class DoMkcol
     extends AbstractMethod
@@ -50,7 +50,7 @@ public class DoMkcol
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()

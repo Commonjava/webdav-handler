@@ -1,20 +1,28 @@
 package net.sf.webdav.exceptions;
 
-public class LockFailedException extends WebdavException {
+public class LockFailedException
+    extends WebdavException
+{
 
-    public LockFailedException() {
+    private static final long serialVersionUID = 1L;
+
+    public LockFailedException()
+    {
         super();
     }
 
-    public LockFailedException(String message) {
-        super(message);
+    public LockFailedException( final String message )
+    {
+        super( message );
     }
 
-    public LockFailedException(String message, Throwable cause) {
-        super(message, cause);
+    public LockFailedException( final String message, final Throwable cause )
+    {
+        super( message, cause );
     }
 
-    public LockFailedException(Throwable cause) {
-        super(cause);
+    public LockFailedException( final Throwable cause )
+    {
+        super( cause );
     }
 }

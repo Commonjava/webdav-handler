@@ -16,21 +16,29 @@
 
 package net.sf.webdav.exceptions;
 
-public class AccessDeniedException extends WebdavException {
+public class AccessDeniedException
+    extends WebdavException
+{
 
-    public AccessDeniedException() {
+    private static final long serialVersionUID = 1L;
+
+    public AccessDeniedException()
+    {
         super();
     }
 
-    public AccessDeniedException(String message) {
-        super(message);
+    public AccessDeniedException( final String message )
+    {
+        super( message );
     }
 
-    public AccessDeniedException(String message, Throwable cause) {
-        super(message, cause);
+    public AccessDeniedException( final String message, final Throwable cause )
+    {
+        super( message, cause );
     }
 
-    public AccessDeniedException(Throwable cause) {
-        super(cause);
+    public AccessDeniedException( final Throwable cause )
+    {
+        super( cause );
     }
 }

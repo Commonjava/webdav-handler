@@ -3,136 +3,155 @@ package net.sf.webdav.testutil;
 import java.io.ByteArrayInputStream;
 import java.util.Date;
 
-import junit.framework.Assert;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.methods.TestingOutputStream;
 
 import org.jmock.Mockery;
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.springframework.mock.web.DelegatingServletInputStream;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
-public abstract class MockTest extends Assert {
+public abstract class MockTest
+{
+
+    protected void setupFixtures()
+        throws Exception
+    {
+    }
 
     protected static Mockery _mockery;
 
     protected static boolean readOnly = true;
 
     protected static int TEMP_TIMEOUT = 10;
+
     protected static boolean TEMPORARY = true;
 
     protected static TestingOutputStream tos = new TestingOutputStream();
-    protected static byte[] resourceContent = new byte[] { '<', 'h', 'e', 'l',
-            'l', 'o', '/', '>' };
-    protected static ByteArrayInputStream bais = new ByteArrayInputStream(
-            resourceContent);
-    protected static DelegatingServletInputStream dsis = new DelegatingServletInputStream(
-            bais);
+
+    protected static byte[] resourceContent = new byte[] { '<', 'h', 'e', 'l', 'l', 'o', '/', '>' };
+
+    protected static ByteArrayInputStream bais = new ByteArrayInputStream( resourceContent );
+
+    //    protected static DelegatingServletInputStream dsis = new DelegatingServletInputStream(
+    //            bais);
     protected static long resourceLength = resourceContent.length;
 
-    protected static String exclusiveLockRequest = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>"
-            + "<D:lockinfo xmlns:D='DAV:'>"
-            + "<D:lockscope><D:exclusive/></D:lockscope>"
-            + "<D:locktype><D:write/></D:locktype>"
-            + "<D:owner><D:href>I'am the Lock Owner</D:href></D:owner>"
-            + "</D:lockinfo>";
-    protected static byte[] exclusiveLockRequestByteArray = exclusiveLockRequest
-            .getBytes();
-    protected static ByteArrayInputStream baisExclusive = new ByteArrayInputStream(
-            exclusiveLockRequestByteArray);
-    protected static DelegatingServletInputStream dsisExclusive = new DelegatingServletInputStream(
-            baisExclusive);
+    protected static String exclusiveLockRequest = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" + "<D:lockinfo xmlns:D='DAV:'>"
+        + "<D:lockscope><D:exclusive/></D:lockscope>" + "<D:locktype><D:write/></D:locktype>"
+        + "<D:owner><D:href>I'am the Lock Owner</D:href></D:owner>" + "</D:lockinfo>";
 
-    protected static String sharedLockRequest = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>"
-            + "<D:lockinfo xmlns:D='DAV:'>"
-            + "<D:lockscope><D:shared/></D:lockscope>"
-            + "<D:locktype><D:write/></D:locktype>"
-            + "<D:owner><D:href>I'am the Lock Owner</D:href></D:owner>"
-            + "</D:lockinfo>";
-    protected static byte[] sharedLockRequestByteArray = sharedLockRequest
-            .getBytes();
-    protected static ByteArrayInputStream baisShared = new ByteArrayInputStream(
-            sharedLockRequestByteArray);
-    protected static DelegatingServletInputStream dsisShared = new DelegatingServletInputStream(
-            baisShared);
+    protected static byte[] exclusiveLockRequestByteArray = exclusiveLockRequest.getBytes();
+
+    protected static ByteArrayInputStream baisExclusive = new ByteArrayInputStream( exclusiveLockRequestByteArray );
+
+    //    protected static DelegatingServletInputStream dsisExclusive = new DelegatingServletInputStream(
+    //            baisExclusive);
+
+    protected static String sharedLockRequest = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" + "<D:lockinfo xmlns:D='DAV:'>"
+        + "<D:lockscope><D:shared/></D:lockscope>" + "<D:locktype><D:write/></D:locktype>"
+        + "<D:owner><D:href>I'am the Lock Owner</D:href></D:owner>" + "</D:lockinfo>";
+
+    protected static byte[] sharedLockRequestByteArray = sharedLockRequest.getBytes();
+
+    protected static ByteArrayInputStream baisShared = new ByteArrayInputStream( sharedLockRequestByteArray );
+
+    //    protected static DelegatingServletInputStream dsisShared = new DelegatingServletInputStream(
+    //            baisShared);
 
     protected static String tmpFolder = "/tmp/tests";
 
     protected static String sourceCollectionPath = tmpFolder + "/sourceFolder";
+
     protected static String destCollectionPath = tmpFolder + "/destFolder";
-    protected static String sourceFilePath = sourceCollectionPath
-            + "/sourceFile";
+
+    protected static String sourceFilePath = sourceCollectionPath + "/sourceFile";
+
     protected static String destFilePath = destCollectionPath + "/destFile";
 
-    protected static String overwritePath = destCollectionPath
-            + "/sourceFolder";
+    protected static String overwritePath = destCollectionPath + "/sourceFolder";
 
     protected static String[] sourceChildren = new String[] { "sourceFile" };
+
     protected static String[] destChildren = new String[] { "destFile" };
 
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @After
-    public final void assertSatisfiedMockery() throws Exception {
+    public final void assertSatisfiedMockery()
+        throws Exception
+    {
         _mockery.assertIsSatisfied();
     }
 
-    @BeforeClass
-    public static void setUpBeforeClass() {
+    @Before
+    public void setup()
+        throws Exception
+    {
         _mockery = new Mockery();
+        setupFixtures();
     }
 
-    @AfterClass
-    public static void tearDownAfterClass() {
-        _mockery = null;
-    }
+    //    @AfterClass
+    //    public static void tearDownAfterClass()
+    //    {
+    //        _mockery = null;
+    //    }
 
-    public static StoredObject initFolderStoredObject() {
-        StoredObject so = initStoredObject(true, null);
+    public static StoredObject initFolderStoredObject()
+    {
+        final StoredObject so = initStoredObject( true, null );
 
         return so;
     }
 
-    public static StoredObject initFileStoredObject(byte[] resourceContent) {
-        StoredObject so = initStoredObject(false, resourceContent);
+    public static StoredObject initFileStoredObject( final byte[] resourceContent )
+    {
+        final StoredObject so = initStoredObject( false, resourceContent );
 
         return so;
     }
 
-    private static StoredObject initStoredObject(boolean isFolder,
-            byte[] resourceContent) {
-        StoredObject so = new StoredObject();
-        so.setFolder(isFolder);
-        so.setCreationDate(new Date());
-        so.setLastModified(new Date());
-        if (!isFolder) {
+    private static StoredObject initStoredObject( final boolean isFolder, final byte[] resourceContent )
+    {
+        final StoredObject so = new StoredObject();
+        so.setFolder( isFolder );
+        so.setCreationDate( new Date() );
+        so.setLastModified( new Date() );
+        if ( !isFolder )
+        {
             // so.setResourceContent(resourceContent);
-            so.setResourceLength(resourceContent.length);
-        } else {
-            so.setResourceLength(0L);
+            so.setResourceLength( resourceContent.length );
+        }
+        else
+        {
+            so.setResourceLength( 0L );
         }
 
         return so;
     }
 
-    public static StoredObject initLockNullStoredObject() {
-        StoredObject so = new StoredObject();
-        so.setNullResource(true);
-        so.setFolder(false);
-        so.setCreationDate(null);
-        so.setLastModified(null);
+    public static StoredObject initLockNullStoredObject()
+    {
+        final StoredObject so = new StoredObject();
+        so.setNullResource( true );
+        so.setFolder( false );
+        so.setCreationDate( null );
+        so.setLastModified( null );
         // so.setResourceContent(null);
-        so.setResourceLength(0);
+        so.setResourceLength( 0 );
 
         return so;
     }
 
-    public static LockedObject initLockNullLockedObject(ResourceLocks resLocks,
-            String path) {
+    public static LockedObject initLockNullLockedObject( final ResourceLocks resLocks, final String path )
+    {
 
-        LockedObject lo = new LockedObject(resLocks, path, false);
-        lo.setExclusive(true);
+        final LockedObject lo = new LockedObject( resLocks, path, false );
+        lo.setExclusive( true );
 
         return lo;
     }

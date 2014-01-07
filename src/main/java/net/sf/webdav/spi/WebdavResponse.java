@@ -6,36 +6,30 @@ import java.io.Writer;
 
 import net.sf.webdav.WebdavStatus;
 
-public interface HttpServletResponse
+public interface WebdavResponse
 {
-
-    void setStatus( int status );
 
     void setStatus( WebdavStatus status );
 
     Writer getWriter();
 
-    String encodeRedirectURL( String string );
+    String encodeRedirectURL( String url );
 
-    void sendRedirect( String redirectURL );
+    void sendRedirect( String redirectUrl );
 
     void addHeader( String name, String value );
 
     void sendError( WebdavStatus status );
 
-    void sendError( WebdavStatus status, String requestURI );
+    void sendError( WebdavStatus status, String requestUri );
 
-    void sendError( int status );
-
-    void sendError( int status, String requestURI );
-
-    void setDateHeader( String name, long lastModified );
+    void setDateHeader( String name, long date );
 
     void setHeader( String name, String value );
 
-    void setContentType( String mimeType );
+    void setContentType( String type );
 
-    void setContentLength( int resourceLength );
+    void setContentLength( int length );
 
     OutputStream getOutputStream()
         throws IOException;

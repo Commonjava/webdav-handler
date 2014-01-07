@@ -21,18 +21,17 @@ import static net.sf.webdav.WebdavStatus.SC_NOT_MODIFIED;
 
 import java.io.IOException;
 
-import net.sf.webdav.IMimeTyper;
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
-import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.IMimeTyper;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
 public class DoHead
     extends AbstractMethod
@@ -48,12 +47,12 @@ public class DoHead
 
     protected IMimeTyper _mimeTyper;
 
-    protected int _contentLength;
+    protected boolean _contentLength;
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoHead.class );
 
     public DoHead( final IWebdavStore store, final String dftIndexFile, final String insteadOf404, final ResourceLocks resourceLocks,
-                   final IMimeTyper mimeTyper, final int contentLengthHeader )
+                   final IMimeTyper mimeTyper, final boolean contentLengthHeader )
     {
         _store = store;
         _dftIndexFile = dftIndexFile;
@@ -64,8 +63,8 @@ public class DoHead
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
-        throws IOException, LockFailedException
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+        throws IOException, WebdavException
     {
 
         // determines if the uri exists.
@@ -147,7 +146,7 @@ public class DoHead
 
                             final long resourceLength = so.getResourceLength();
 
-                            if ( _contentLength == 1 )
+                            if ( _contentLength )
                             {
                                 if ( resourceLength > 0 )
                                 {
@@ -222,14 +221,14 @@ public class DoHead
 
     }
 
-    protected void folderBody( final ITransaction transaction, final String path, final HttpServletResponse resp, final HttpServletRequest req )
-        throws IOException
+    protected void folderBody( final ITransaction transaction, final String path, final WebdavResponse resp, final WebdavRequest req )
+        throws IOException, WebdavException
     {
         // no body for HEAD
     }
 
-    protected void doBody( final ITransaction transaction, final HttpServletResponse resp, final String path )
-        throws IOException
+    protected void doBody( final ITransaction transaction, final WebdavResponse resp, final String path )
+        throws IOException, WebdavException
     {
         // no body for HEAD
     }

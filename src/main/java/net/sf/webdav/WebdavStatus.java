@@ -231,4 +231,17 @@ public enum WebdavStatus
         return message;
     }
 
+    public static WebdavStatus get( final int status )
+    {
+        for ( final WebdavStatus stat : values() )
+        {
+            if ( stat.code == status )
+            {
+                return stat;
+            }
+        }
+
+        return null;
+    }
+
 };

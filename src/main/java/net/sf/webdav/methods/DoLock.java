@@ -30,18 +30,17 @@ import java.util.Hashtable;
 
 import javax.xml.parsers.DocumentBuilder;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.fromcatalina.XMLWriter;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
-import net.sf.webdav.spi.WebDavException;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
+import net.sf.webdav.util.XMLWriter;
 
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -85,8 +84,8 @@ public class DoLock
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
-        throws IOException, LockFailedException
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+        throws IOException, WebdavException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
@@ -156,8 +155,8 @@ public class DoLock
         }
     }
 
-    private void doLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
-        throws IOException, LockFailedException
+    private void doLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+        throws IOException, WebdavException
     {
 
         StoredObject so = _store.getStoredObject( transaction, _path );
@@ -179,7 +178,7 @@ public class DoLock
 
     }
 
-    private void doLocking( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    private void doLocking( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException
     {
 
@@ -200,14 +199,14 @@ public class DoLock
             executeLock( transaction, req, resp );
 
         }
-        catch ( final WebDavException e )
-        {
-            resp.sendError( SC_INTERNAL_SERVER_ERROR );
-            LOG.trace( e.toString() );
-        }
         catch ( final LockFailedException e )
         {
             sendLockFailError( transaction, req, resp );
+        }
+        catch ( final WebdavException e )
+        {
+            resp.sendError( SC_INTERNAL_SERVER_ERROR );
+            LOG.trace( e.toString() );
         }
         finally
         {
@@ -216,7 +215,7 @@ public class DoLock
 
     }
 
-    private void doNullResourceLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    private void doNullResourceLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException
     {
 
@@ -276,11 +275,6 @@ public class DoLock
             resp.sendError( SC_INTERNAL_SERVER_ERROR );
             e.printStackTrace();
         }
-        catch ( final WebDavException e )
-        {
-            resp.sendError( SC_INTERNAL_SERVER_ERROR );
-            e.printStackTrace();
-        }
         finally
         {
             parentSo = null;
@@ -288,7 +282,7 @@ public class DoLock
         }
     }
 
-    private void doRefreshLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    private void doRefreshLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException, LockFailedException
     {
 
@@ -331,8 +325,8 @@ public class DoLock
     /**
      * Executes the LOCK
      */
-    private void executeLock( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
-        throws LockFailedException, IOException, WebDavException
+    private void executeLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+        throws LockFailedException, IOException, WebdavException
     {
 
         // Mac OS lock request workaround
@@ -392,8 +386,8 @@ public class DoLock
     /**
      * Tries to get the LockInformation from LOCK request
      */
-    private boolean getLockInformation( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
-        throws WebDavException, IOException
+    private boolean getLockInformation( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+        throws WebdavException, IOException
     {
 
         Node lockInfoNode = null;
@@ -554,7 +548,7 @@ public class DoLock
     /**
      * Ties to read the timeout from request
      */
-    private int getTimeout( final ITransaction transaction, final HttpServletRequest req )
+    private int getTimeout( final ITransaction transaction, final WebdavRequest req )
     {
 
         int lockDuration = DEFAULT_TIMEOUT;
@@ -609,7 +603,7 @@ public class DoLock
     /**
      * Generates the response XML with all lock information
      */
-    private void generateXMLReport( final ITransaction transaction, final HttpServletResponse resp, final LockedObject lo )
+    private void generateXMLReport( final ITransaction transaction, final WebdavResponse resp, final LockedObject lo )
         throws IOException
     {
 
@@ -684,7 +678,7 @@ public class DoLock
     /**
      * Executes the lock for a Mac OS Finder client
      */
-    private void doMacLockRequestWorkaround( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    private void doMacLockRequestWorkaround( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws LockFailedException, IOException
     {
         LockedObject lo;
@@ -721,7 +715,7 @@ public class DoLock
     /**
      * Sends an error report to the client
      */
-    private void sendLockFailError( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    private void sendLockFailError( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException
     {
         final Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();

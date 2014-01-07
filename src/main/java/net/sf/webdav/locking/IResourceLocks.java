@@ -1,7 +1,7 @@
 package net.sf.webdav.locking;
 
-import net.sf.webdav.ITransaction;
 import net.sf.webdav.exceptions.LockFailedException;
+import net.sf.webdav.spi.ITransaction;
 
 public interface IResourceLocks {
 

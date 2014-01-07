@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.sf.webdav;
+package net.sf.webdav.methods;
 
 import java.io.IOException;
 
 import net.sf.webdav.exceptions.LockFailedException;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.exceptions.WebdavException;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
-public interface IMethodExecutor
+public interface WebdavMethod
 {
 
-    void execute( ITransaction transaction, HttpServletRequest req, HttpServletResponse resp )
-        throws IOException, LockFailedException;
+    void execute( ITransaction transaction, WebdavRequest req, WebdavResponse resp )
+        throws IOException, LockFailedException, WebdavException;
 
 }

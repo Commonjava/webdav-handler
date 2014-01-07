@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package net.sf.webdav.fromcatalina;
+package net.sf.webdav.util;
 
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.TimeZone;
-
-import net.sf.webdav.spi.Cookie;
-import net.sf.webdav.spi.CookieImpl;
 
 /**
  * General purpose request parsing and encoding utility methods.
@@ -54,60 +50,60 @@ public final class RequestUtil
      *      The cookie to encode.
      * @return A string following RFC 2109.
      */
-    public static String encodeCookie( final Cookie cookie )
-    {
-
-        final StringBuilder buf = new StringBuilder( cookie.getName() );
-        buf.append( "=" );
-        buf.append( cookie.getValue() );
-
-        final String comment = cookie.getComment();
-        if ( comment != null )
-        {
-            buf.append( "; Comment=\"" );
-            buf.append( comment );
-            buf.append( "\"" );
-        }
-
-        final String domain = cookie.getDomain();
-        if ( domain != null )
-        {
-            buf.append( "; Domain=\"" );
-            buf.append( domain );
-            buf.append( "\"" );
-        }
-
-        final int age = cookie.getMaxAge();
-        if ( age >= 0 )
-        {
-            buf.append( "; Max-Age=\"" );
-            buf.append( age );
-            buf.append( "\"" );
-        }
-
-        final String path = cookie.getPath();
-        if ( path != null )
-        {
-            buf.append( "; Path=\"" );
-            buf.append( path );
-            buf.append( "\"" );
-        }
-
-        if ( cookie.getSecure() )
-        {
-            buf.append( "; Secure" );
-        }
-
-        final int version = cookie.getVersion();
-        if ( version > 0 )
-        {
-            buf.append( "; Version=\"" );
-            buf.append( version );
-            buf.append( "\"" );
-        }
-
-        return ( buf.toString() );
-    }
+    //    public static String encodeCookie( final Cookie cookie )
+    //    {
+    //
+    //        final StringBuilder buf = new StringBuilder( cookie.getName() );
+    //        buf.append( "=" );
+    //        buf.append( cookie.getValue() );
+    //
+    //        final String comment = cookie.getComment();
+    //        if ( comment != null )
+    //        {
+    //            buf.append( "; Comment=\"" );
+    //            buf.append( comment );
+    //            buf.append( "\"" );
+    //        }
+    //
+    //        final String domain = cookie.getDomain();
+    //        if ( domain != null )
+    //        {
+    //            buf.append( "; Domain=\"" );
+    //            buf.append( domain );
+    //            buf.append( "\"" );
+    //        }
+    //
+    //        final int age = cookie.getMaxAge();
+    //        if ( age >= 0 )
+    //        {
+    //            buf.append( "; Max-Age=\"" );
+    //            buf.append( age );
+    //            buf.append( "\"" );
+    //        }
+    //
+    //        final String path = cookie.getPath();
+    //        if ( path != null )
+    //        {
+    //            buf.append( "; Path=\"" );
+    //            buf.append( path );
+    //            buf.append( "\"" );
+    //        }
+    //
+    //        if ( cookie.getSecure() )
+    //        {
+    //            buf.append( "; Secure" );
+    //        }
+    //
+    //        final int version = cookie.getVersion();
+    //        if ( version > 0 )
+    //        {
+    //            buf.append( "; Version=\"" );
+    //            buf.append( version );
+    //            buf.append( "\"" );
+    //        }
+    //
+    //        return ( buf.toString() );
+    //    }
 
     /**
      * Filter the specified message string for characters that are sensitive in
@@ -261,62 +257,62 @@ public final class RequestUtil
 
     }
 
-    /**
-     * Parse a cookie header into an array of cookies according to RFC 2109.
-     * 
-     * @param header
-     *      Value of an HTTP "Cookie" header
-     */
-    public static Cookie[] parseCookieHeader( String header )
-    {
-
-        if ( ( header == null ) || ( header.length() < 1 ) )
-        {
-            return ( new Cookie[0] );
-        }
-
-        final ArrayList<Cookie> cookies = new ArrayList<Cookie>();
-        while ( header.length() > 0 )
-        {
-            int semicolon = header.indexOf( ';' );
-            if ( semicolon < 0 )
-            {
-                semicolon = header.length();
-            }
-            if ( semicolon == 0 )
-            {
-                break;
-            }
-            final String token = header.substring( 0, semicolon );
-            if ( semicolon < header.length() )
-            {
-                header = header.substring( semicolon + 1 );
-            }
-            else
-            {
-                header = "";
-            }
-            try
-            {
-                final int equals = token.indexOf( '=' );
-                if ( equals > 0 )
-                {
-                    final String name = token.substring( 0, equals )
-                                             .trim();
-                    final String value = token.substring( equals + 1 )
-                                              .trim();
-                    cookies.add( new CookieImpl( name, value ) );
-                }
-            }
-            catch ( final Throwable e )
-            {
-                ;
-            }
-        }
-
-        return ( cookies.toArray( new Cookie[cookies.size()] ) );
-
-    }
+    //    /**
+    //     * Parse a cookie header into an array of cookies according to RFC 2109.
+    //     * 
+    //     * @param header
+    //     *      Value of an HTTP "Cookie" header
+    //     */
+    //    public static Cookie[] parseCookieHeader( String header )
+    //    {
+    //
+    //        if ( ( header == null ) || ( header.length() < 1 ) )
+    //        {
+    //            return ( new Cookie[0] );
+    //        }
+    //
+    //        final ArrayList<Cookie> cookies = new ArrayList<Cookie>();
+    //        while ( header.length() > 0 )
+    //        {
+    //            int semicolon = header.indexOf( ';' );
+    //            if ( semicolon < 0 )
+    //            {
+    //                semicolon = header.length();
+    //            }
+    //            if ( semicolon == 0 )
+    //            {
+    //                break;
+    //            }
+    //            final String token = header.substring( 0, semicolon );
+    //            if ( semicolon < header.length() )
+    //            {
+    //                header = header.substring( semicolon + 1 );
+    //            }
+    //            else
+    //            {
+    //                header = "";
+    //            }
+    //            try
+    //            {
+    //                final int equals = token.indexOf( '=' );
+    //                if ( equals > 0 )
+    //                {
+    //                    final String name = token.substring( 0, equals )
+    //                                             .trim();
+    //                    final String value = token.substring( equals + 1 )
+    //                                              .trim();
+    //                    cookies.add( new CookieImpl( name, value ) );
+    //                }
+    //            }
+    //            catch ( final Throwable e )
+    //            {
+    //                ;
+    //            }
+    //        }
+    //
+    //        return ( cookies.toArray( new Cookie[cookies.size()] ) );
+    //
+    //    }
 
     /**
      * Append request parameters from the specified String to the specified Map.

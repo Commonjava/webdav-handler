@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.sf.webdav.fromcatalina;
+package net.sf.webdav.util;
 
 import java.io.IOException;
 import java.io.Writer;

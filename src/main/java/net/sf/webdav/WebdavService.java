@@ -5,12 +5,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import net.sf.webdav.exceptions.UnauthenticatedException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.fromcatalina.MD5Encoder;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.methods.DoCopy;
 import net.sf.webdav.methods.DoDelete;
@@ -25,16 +23,21 @@ import net.sf.webdav.methods.DoPropfind;
 import net.sf.webdav.methods.DoProppatch;
 import net.sf.webdav.methods.DoPut;
 import net.sf.webdav.methods.DoUnlock;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
-import net.sf.webdav.spi.WebDavConfig;
-import net.sf.webdav.spi.WebDavContext;
-import net.sf.webdav.spi.WebDavException;
+import net.sf.webdav.methods.WebdavMethod;
+import net.sf.webdav.spi.IMimeTyper;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavConfig;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
+import net.sf.webdav.util.MD5Encoder;
 
-public class WebDavServletBean
+public class WebdavService
 {
 
-    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( WebDavServletBean.class );
+    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( WebdavService.class );
+
+    public static final String ROOTPATH_PARAMETER = "rootpath";
 
     /**
      * MD5 message digest provider.
@@ -50,15 +53,13 @@ public class WebDavServletBean
 
     private final ResourceLocks _resLocks;
 
-    private IWebdavStore _store;
+    private final IWebdavStore store;
 
-    private final HashMap<String, IMethodExecutor> _methodMap = new HashMap<String, IMethodExecutor>();
+    private final HashMap<String, WebdavMethod> _methodMap = new HashMap<String, WebdavMethod>();
 
-    private final Map<String, String> initParams;
-
-    public WebDavServletBean( final Map<String, String> initParams )
+    public WebdavService( final WebdavConfig config, final IWebdavStore store, final IMimeTyper mimeTyper )
     {
-        this.initParams = initParams;
+        this.store = store;
         _resLocks = new ResourceLocks();
 
         try
@@ -69,25 +70,16 @@ public class WebDavServletBean
         {
             throw new IllegalStateException();
         }
-    }
 
-    public void init( final IWebdavStore store, final String dftIndexFile, final String insteadOf404, final int nocontentLenghHeaders,
-                      final boolean lazyFolderCreationOnPut )
-    {
+        final boolean lazyFolderCreationOnPut = config.isLazyFolderCreationOnPut();
 
-        _store = store;
+        final String dftIndexFile = config.getDefaultIndexPath();
+        final String insteadOf404 = config.getAlt404Path();
 
-        final IMimeTyper mimeTyper = new IMimeTyper()
-        {
-            @Override
-            public String getMimeType( final String path )
-            {
-                return getContext().getMimeType( path );
-            }
-        };
+        final boolean noContentLengthHeader = config.isOmitContentLengthHeaders();
 
-        register( "GET", new DoGet( store, dftIndexFile, insteadOf404, _resLocks, mimeTyper, nocontentLenghHeaders ) );
-        register( "HEAD", new DoHead( store, dftIndexFile, insteadOf404, _resLocks, mimeTyper, nocontentLenghHeaders ) );
+        register( "GET", new DoGet( store, dftIndexFile, insteadOf404, _resLocks, mimeTyper, !noContentLengthHeader ) );
+        register( "HEAD", new DoHead( store, dftIndexFile, insteadOf404, _resLocks, mimeTyper, !noContentLengthHeader ) );
         final DoDelete doDelete = (DoDelete) register( "DELETE", new DoDelete( store, _resLocks, READ_ONLY ) );
         final DoCopy doCopy = (DoCopy) register( "COPY", new DoCopy( store, _resLocks, doDelete, READ_ONLY ) );
         register( "LOCK", new DoLock( store, _resLocks, READ_ONLY ) );
@@ -101,29 +93,7 @@ public class WebDavServletBean
         register( "*NO*IMPL*", new DoNotImplemented( READ_ONLY ) );
     }
 
-    protected String getInitParameter( final String name )
-    {
-        return initParams.get( name );
-    }
-
-    protected int getIntInitParameter( final String key )
-    {
-        return getInitParameter( key ) == null ? -1 : Integer.parseInt( getInitParameter( key ) );
-    }
-
-    protected WebDavConfig getConfig()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    protected WebDavContext getContext()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    private IMethodExecutor register( final String methodName, final IMethodExecutor method )
+    private WebdavMethod register( final String methodName, final WebdavMethod method )
     {
         _methodMap.put( methodName, method );
         return method;
@@ -132,8 +102,8 @@ public class WebDavServletBean
     /**
      * Handles the special WebDAV methods.
      */
-    protected void service( final HttpServletRequest req, final HttpServletResponse resp )
-        throws WebDavException, IOException
+    public void service( final WebdavRequest req, final WebdavResponse resp )
+        throws WebdavException, IOException
     {
 
         final String methodName = req.getMethod();
@@ -148,14 +118,14 @@ public class WebDavServletBean
         try
         {
             final Principal userPrincipal = req.getUserPrincipal();
-            transaction = _store.begin( userPrincipal );
+            transaction = store.begin( userPrincipal );
             needRollback = true;
-            _store.checkAuthentication( transaction );
+            store.checkAuthentication( transaction );
             resp.setStatus( WebdavStatus.SC_OK );
 
             try
             {
-                IMethodExecutor methodExecutor = _methodMap.get( methodName );
+                WebdavMethod methodExecutor = _methodMap.get( methodName );
                 if ( methodExecutor == null )
                 {
                     methodExecutor = _methodMap.get( "*NO*IMPL*" );
@@ -163,7 +133,7 @@ public class WebDavServletBean
 
                 methodExecutor.execute( transaction, req, resp );
 
-                _store.commit( transaction );
+                store.commit( transaction );
                 needRollback = false;
             }
             catch ( final IOException e )
@@ -173,8 +143,8 @@ public class WebDavServletBean
                 e.printStackTrace( pw );
                 LOG.error( "IOException: " + sw.toString() );
                 resp.sendError( WebdavStatus.SC_INTERNAL_SERVER_ERROR );
-                _store.rollback( transaction );
-                throw new WebDavException( e );
+                store.rollback( transaction );
+                throw new WebdavException( e );
             }
 
         }
@@ -188,7 +158,7 @@ public class WebDavServletBean
             final java.io.PrintWriter pw = new java.io.PrintWriter( sw );
             e.printStackTrace( pw );
             LOG.error( "WebdavException: " + sw.toString() );
-            throw new WebDavException( e );
+            throw new WebdavException( e );
         }
         catch ( final Exception e )
         {
@@ -201,13 +171,13 @@ public class WebDavServletBean
         {
             if ( needRollback )
             {
-                _store.rollback( transaction );
+                store.rollback( transaction );
             }
         }
 
     }
 
-    private void debugRequest( final String methodName, final HttpServletRequest req )
+    private void debugRequest( final String methodName, final WebdavRequest req )
     {
         LOG.trace( "-----------" );
         LOG.trace( "WebdavServlet\n request: methodName = " + methodName );

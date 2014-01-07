@@ -16,21 +16,29 @@
 
 package net.sf.webdav.exceptions;
 
-public class WebdavException extends RuntimeException {
+public class WebdavException
+    extends Exception
+{
 
-    public WebdavException() {
+    private static final long serialVersionUID = 1L;
+
+    public WebdavException()
+    {
         super();
     }
 
-    public WebdavException(String message) {
-        super(message);
+    public WebdavException( final String message )
+    {
+        super( message );
     }
 
-    public WebdavException(String message, Throwable cause) {
-        super(message, cause);
+    public WebdavException( final String message, final Throwable cause )
+    {
+        super( message, cause );
     }
 
-    public WebdavException(Throwable cause) {
-        super(cause);
+    public WebdavException( final Throwable cause )
+    {
+        super( cause );
     }
 }

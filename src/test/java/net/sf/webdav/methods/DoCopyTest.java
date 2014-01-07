@@ -3,18 +3,17 @@ package net.sf.webdav.methods;
 import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
 
 import org.jmock.Expectations;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DoCopyTest
@@ -23,23 +22,23 @@ public class DoCopyTest
 
     static IWebdavStore mockStore;
 
-    static HttpServletRequest mockReq;
+    static WebdavRequest mockReq;
 
-    static HttpServletResponse mockRes;
+    static WebdavResponse mockRes;
 
     static ITransaction mockTransaction;
 
     static ByteArrayInputStream bais = new ByteArrayInputStream( resourceContent );
 
-    static DelegatingServletInputStream dsis = new DelegatingServletInputStream( bais );
+    //    static DelegatingServletInputStream dsis = new DelegatingServletInputStream( bais );
 
-    @BeforeClass
-    public static void setUp()
+    @Override
+    public void setupFixtures()
         throws Exception
     {
         mockStore = _mockery.mock( IWebdavStore.class );
-        mockReq = _mockery.mock( HttpServletRequest.class );
-        mockRes = _mockery.mock( HttpServletResponse.class );
+        mockReq = _mockery.mock( WebdavRequest.class );
+        mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
     }
 
@@ -266,9 +265,9 @@ public class DoCopyTest
                 one( mockStore ).createResource( mockTransaction, destFilePath );
 
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
-                will( returnValue( dsis ) );
+                will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, dsis, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
                 will( returnValue( resourceLength ) );
 
                 destFileSo = initFileStoredObject( resourceContent );
@@ -439,9 +438,9 @@ public class DoCopyTest
                 one( mockStore ).createResource( mockTransaction, destCollectionPath + "/sourceFile" );
 
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
-                will( returnValue( dsis ) );
+                will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", dsis, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, null, null );
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
@@ -580,9 +579,9 @@ public class DoCopyTest
                 one( mockStore ).createResource( mockTransaction, destFilePath );
 
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
-                will( returnValue( dsis ) );
+                will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, dsis, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
 
                 one( mockStore ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( existingDestSo ) );
@@ -721,9 +720,9 @@ public class DoCopyTest
                 one( mockStore ).createResource( mockTransaction, destFilePath );
 
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
-                will( returnValue( dsis ) );
+                will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, dsis, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
 
                 one( mockStore ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );

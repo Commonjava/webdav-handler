@@ -25,8 +25,6 @@ import static net.sf.webdav.WebdavStatus.SC_NOT_FOUND;
 import java.io.IOException;
 import java.util.Hashtable;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
@@ -34,10 +32,12 @@ import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.ObjectNotFoundException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.fromcatalina.RequestUtil;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
+import net.sf.webdav.util.RequestUtil;
 
 public class DoCopy
     extends AbstractMethod
@@ -62,7 +62,7 @@ public class DoCopy
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
@@ -133,7 +133,7 @@ public class DoCopy
      *      when an error occurs while sending the response
      * @throws LockFailedException
      */
-    public boolean copyResource( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    public boolean copyResource( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws WebdavException, IOException, LockFailedException
     {
 
@@ -281,7 +281,7 @@ public class DoCopy
      * @throws IOException
      */
     private void copy( final ITransaction transaction, final String sourcePath, final String destinationPath,
-                       final Hashtable<String, WebdavStatus> errorList, final HttpServletRequest req, final HttpServletResponse resp )
+                       final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req, final WebdavResponse resp )
         throws WebdavException, IOException
     {
 
@@ -334,7 +334,7 @@ public class DoCopy
      *      if an error in the underlying store occurs
      */
     private void copyFolder( final ITransaction transaction, final String sourcePath, final String destinationPath,
-                             final Hashtable<String, WebdavStatus> errorList, final HttpServletRequest req, final HttpServletResponse resp )
+                             final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req, final WebdavResponse resp )
         throws WebdavException
     {
 
@@ -410,7 +410,7 @@ public class DoCopy
      * @throws IOException
      *      if an error occurs while sending response
      */
-    private String parseDestinationHeader( final HttpServletRequest req, final HttpServletResponse resp )
+    private String parseDestinationHeader( final WebdavRequest req, final WebdavResponse resp )
         throws IOException
     {
         String destinationPath = req.getHeader( "Destination" );

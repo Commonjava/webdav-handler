@@ -1,4 +1,4 @@
-package net.sf.webdav.fromcatalina;
+package net.sf.webdav.util;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -16,20 +16,19 @@ import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.fromcatalina.XMLHelper;
-import net.sf.webdav.fromcatalina.XMLWriter;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
-import net.sf.webdav.spi.WebDavException;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
+import net.sf.webdav.util.XMLHelper;
+import net.sf.webdav.util.XMLWriter;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -56,7 +55,7 @@ public class DoProppatch
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
@@ -240,12 +239,6 @@ public class DoProppatch
             catch ( final WebdavException e )
             {
                 resp.sendError( SC_INTERNAL_SERVER_ERROR );
-            }
-            catch ( final WebDavException e )
-            {
-                // FIXME
-                e.printStackTrace(); // To change body of catch statement use
-                // File | Settings | File Templates.
             }
             finally
             {

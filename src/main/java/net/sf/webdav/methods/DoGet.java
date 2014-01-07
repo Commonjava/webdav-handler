@@ -25,13 +25,14 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-import net.sf.webdav.IMimeTyper;
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.IMimeTyper;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
 public class DoGet
     extends DoHead
@@ -40,14 +41,14 @@ public class DoGet
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoGet.class );
 
     public DoGet( final IWebdavStore store, final String dftIndexFile, final String insteadOf404, final ResourceLocks resourceLocks,
-                  final IMimeTyper mimeTyper, final int contentLengthHeader )
+                  final IMimeTyper mimeTyper, final boolean contentLengthHeader )
     {
         super( store, dftIndexFile, insteadOf404, resourceLocks, mimeTyper, contentLengthHeader );
 
     }
 
     @Override
-    protected void doBody( final ITransaction transaction, final HttpServletResponse resp, final String path )
+    protected void doBody( final ITransaction transaction, final WebdavResponse resp, final String path )
     {
 
         try
@@ -102,8 +103,8 @@ public class DoGet
     }
 
     @Override
-    protected void folderBody( final ITransaction transaction, final String path, final HttpServletResponse resp, final HttpServletRequest req )
-        throws IOException
+    protected void folderBody( final ITransaction transaction, final String path, final WebdavResponse resp, final WebdavRequest req )
+        throws IOException, WebdavException
     {
 
         final StoredObject so = _store.getStoredObject( transaction, path );
@@ -265,7 +266,7 @@ public class DoGet
      * @param req
      * @return String representing the header to be display in front of the folder content
      */
-    protected String getHeader( final ITransaction transaction, final String path, final HttpServletResponse resp, final HttpServletRequest req )
+    protected String getHeader( final ITransaction transaction, final String path, final WebdavResponse resp, final WebdavRequest req )
     {
         return "<h1>Content of folder " + path + "</h1>";
     }
@@ -279,7 +280,7 @@ public class DoGet
      * @param req
      * @return String representing the footer to be displayed after the folder content
      */
-    protected String getFooter( final ITransaction transaction, final String path, final HttpServletResponse resp, final HttpServletRequest req )
+    protected String getFooter( final ITransaction transaction, final String path, final WebdavResponse resp, final WebdavRequest req )
     {
         return "";
     }

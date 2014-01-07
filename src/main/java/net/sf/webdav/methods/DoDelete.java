@@ -23,8 +23,6 @@ import static net.sf.webdav.WebdavStatus.SC_NOT_FOUND;
 import java.io.IOException;
 import java.util.Hashtable;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
@@ -33,8 +31,10 @@ import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.ObjectNotFoundException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
 public class DoDelete
     extends AbstractMethod
@@ -56,7 +56,7 @@ public class DoDelete
     }
 
     @Override
-    public void execute( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
@@ -144,7 +144,7 @@ public class DoDelete
      *      when an error occurs while sending the response
      */
     public void deleteResource( final ITransaction transaction, final String path, final Hashtable<String, WebdavStatus> errorList,
-                                final HttpServletRequest req, final HttpServletResponse resp )
+                                final WebdavRequest req, final WebdavResponse resp )
         throws IOException, WebdavException
     {
 
@@ -207,7 +207,7 @@ public class DoDelete
      *      if an error in the underlying store occurs
      */
     private void deleteFolder( final ITransaction transaction, final String path, final Hashtable<String, WebdavStatus> errorList,
-                               final HttpServletRequest req, final HttpServletResponse resp )
+                               final WebdavRequest req, final WebdavResponse resp )
         throws WebdavException
     {
 

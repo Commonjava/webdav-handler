@@ -1,17 +1,21 @@
 package net.sf.webdav;
 
-import net.sf.webdav.spi.ServletConfig;
-import net.sf.webdav.spi.ServletContext;
+import java.util.HashMap;
+import java.util.Map;
+
+import net.sf.webdav.impl.ActivationMimeTyper;
+import net.sf.webdav.impl.LocalFileSystemStore;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavConfig;
 import net.sf.webdav.testutil.MockHttpServletRequest;
 import net.sf.webdav.testutil.MockHttpServletResponse;
 import net.sf.webdav.testutil.MockHttpSession;
 import net.sf.webdav.testutil.MockPrincipal;
-import net.sf.webdav.testutil.MockServletConfig;
-import net.sf.webdav.testutil.MockServletContext;
 import net.sf.webdav.testutil.MockTest;
+import net.sf.webdav.testutil.MockWebdavConfig;
 
 import org.jmock.Expectations;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class WebdavServletTest
@@ -19,17 +23,17 @@ public class WebdavServletTest
 {
 
     // private static WebdavServlet _servlet = new WebdavServlet();
-    static ServletConfig servletConfig;
+    static WebdavConfig servletConfig;
 
-    static ServletContext servletContext;
+    //    static ServletContext servletContext;
 
     // static HttpServletRequest mockeryReq;
     // static HttpServletResponse mockRes;
     static IWebdavStore mockStore;
 
-    static MockServletConfig mockServletConfig;
+    static MockWebdavConfig config;
 
-    static MockServletContext mockServletContext;
+    //    static MockServletContext mockServletContext;
 
     static MockHttpServletRequest mockReq;
 
@@ -49,18 +53,20 @@ public class WebdavServletTest
 
     static String insteadOf404 = "/insteadOf404";
 
-    @BeforeClass
-    public static void setUp()
+    @Override
+    public void setupFixtures()
         throws Exception
     {
-        servletConfig = _mockery.mock( ServletConfig.class );
-        servletContext = _mockery.mock( ServletContext.class );
+        //        servletContext = _mockery.mock( ServletContext.class );
         mockStore = _mockery.mock( IWebdavStore.class );
 
-        //        mockServletConfig = new MockServletConfig(mockServletContext);
+        config = new MockWebdavConfig();
+        config.setAlt404Path( insteadOf404 );
+        config.setDefaultIndexPath( dftIndexFile );
+
         //        mockHttpSession = new MockHttpSession(mockServletContext);
-        mockServletContext = new MockServletContext();
-        //        mockReq = new MockHttpServletRequest(mockServletContext);
+        //        mockServletContext = new MockServletContext();
+        mockReq = new MockHttpServletRequest();
         mockRes = new MockHttpServletResponse();
 
         mockPrincipal = new MockPrincipal( "Admin", new String[] { "Admin", "Manager" } );
@@ -77,8 +83,7 @@ public class WebdavServletTest
         {
         } );
 
-        final WebDavServletBean servlet = new WebdavServlet();
-        servlet.init( mockStore, dftIndexFile, insteadOf404, 1, true );
+        new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );
 
         _mockery.assertIsSatisfied();
     }
@@ -93,39 +98,34 @@ public class WebdavServletTest
         _mockery.checking( new Expectations()
         {
             {
-                allowing( servletConfig ).getServletContext();
-                will( returnValue( mockServletContext ) );
+                //                allowing( servletConfig ).getContext();
+                //                will( returnValue( mockServletContext ) );
+                //
+                //                allowing( servletConfig ).getServletName();
+                //                will( returnValue( "webdav-servlet" ) );
+                //
+                //                allowing( servletContext ).log( "webdav-servlet: init" );
 
-                allowing( servletConfig ).getServletName();
-                will( returnValue( "webdav-servlet" ) );
-
-                allowing( servletContext ).log( "webdav-servlet: init" );
-
-                one( servletConfig ).getInitParameter( "ResourceHandlerImplementation" );
-                will( returnValue( "" ) );
-
-                one( servletConfig ).getInitParameter( "rootpath" );
-                will( returnValue( "./target/tmpTestData/" ) );
-
-                exactly( 2 ).of( servletConfig )
-                            .getInitParameter( "lazyFolderCreationOnPut" );
-                will( returnValue( "1" ) );
-
-                one( servletConfig ).getInitParameter( "default-index-file" );
-                will( returnValue( "index.html" ) );
-
-                one( servletConfig ).getInitParameter( "instead-of-404" );
-                will( returnValue( "" ) );
-
-                exactly( 2 ).of( servletConfig )
-                            .getInitParameter( "no-content-length-headers" );
-                will( returnValue( "0" ) );
+                //                one( servletConfig ).getInitParameter( "rootpath" );
+                //                will( returnValue( "./target/tmpTestData/" ) );
+                //
+                //                exactly( 2 ).of( servletConfig )
+                //                            .getInitParameter( "lazyFolderCreationOnPut" );
+                //                will( returnValue( "1" ) );
+                //
+                //                one( servletConfig ).getInitParameter( "default-index-file" );
+                //                will( returnValue( "index.html" ) );
+                //
+                //                one( servletConfig ).getInitParameter( "instead-of-404" );
+                //                will( returnValue( "" ) );
+                //
+                //                exactly( 2 ).of( servletConfig )
+                //                            .getInitParameter( "no-content-length-headers" );
+                //                will( returnValue( "0" ) );
             }
         } );
 
-        final WebDavServletBean servlet = new WebdavServlet();
-
-        servlet.init( servletConfig );
+        new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );
 
         _mockery.assertIsSatisfied();
     }
@@ -134,13 +134,15 @@ public class WebdavServletTest
     public void testService()
         throws Exception
     {
+        config.setLazyFolderCreationOnPut( true );
+        config.setOmitContentLengthHeaders( false );
 
-        mockServletConfig.addInitParameter( "ResourceHandlerImplementation", "" );
-        mockServletConfig.addInitParameter( "rootpath", "./target/tmpTestData" );
-        mockServletConfig.addInitParameter( "lazyFolderCreationOnPut", "1" );
-        mockServletConfig.addInitParameter( "default-index-file", dftIndexFile );
-        mockServletConfig.addInitParameter( "instead-of-404", insteadOf404 );
-        mockServletConfig.addInitParameter( "no-content-length-headers", "0" );
+        //        config.addInitParameter( "ResourceHandlerImplementation", "" );
+        //        config.addInitParameter( "rootpath", "./target/tmpTestData" );
+        //        config.addInitParameter( "lazyFolderCreationOnPut", "1" );
+        //        config.addInitParameter( "default-index-file", dftIndexFile );
+        //        config.addInitParameter( "instead-of-404", insteadOf404 );
+        //        config.addInitParameter( "no-content-length-headers", "0" );
 
         // StringTokenizer headers = new StringTokenizer(
         // "Host Depth Content-Type Content-Length");
@@ -154,11 +156,11 @@ public class WebdavServletTest
         mockReq.addHeader( "Content-Length", "1234" );
         mockReq.addHeader( "User-Agent", "...some Client with WebDAVFS..." );
 
-        mockReq.setSession( mockHttpSession );
+        //        mockReq.setSession( mockHttpSession );
         mockPrincipal = new MockPrincipal( "Admin", new String[] { "Admin", "Manager" } );
         mockReq.setUserPrincipal( mockPrincipal );
-        mockReq.addUserRole( "Admin" );
-        mockReq.addUserRole( "Manager" );
+        //        mockReq.addUserRole( "Admin" );
+        //        mockReq.addUserRole( "Manager" );
 
         mockReq.setContent( resourceContent );
 
@@ -169,9 +171,11 @@ public class WebdavServletTest
             }
         } );
 
-        final WebDavServletBean servlet = new WebdavServlet();
+        final Map<String, String> initParams = new HashMap<String, String>();
+        initParams.put( WebdavService.ROOTPATH_PARAMETER, "./target/tmpTestData" );
 
-        servlet.init( mockServletConfig );
+        final WebdavService servlet =
+            new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );
 
         servlet.service( mockReq, mockRes );
 

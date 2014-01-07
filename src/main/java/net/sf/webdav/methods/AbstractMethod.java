@@ -29,21 +29,20 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import net.sf.webdav.IMethodExecutor;
-import net.sf.webdav.ITransaction;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.LockFailedException;
-import net.sf.webdav.fromcatalina.URLEncoder;
-import net.sf.webdav.fromcatalina.XMLWriter;
+import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
-import net.sf.webdav.spi.WebDavException;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
+import net.sf.webdav.util.URLEncoder;
+import net.sf.webdav.util.XMLWriter;
 
 public abstract class AbstractMethod
-    implements IMethodExecutor
+    implements WebdavMethod
 {
 
     /**
@@ -114,7 +113,7 @@ public abstract class AbstractMethod
      * @param request
      *      The servlet request we are processing
      */
-    protected String getRelativePath( final HttpServletRequest request )
+    protected String getRelativePath( final WebdavRequest request )
     {
 
         // Are we being processed by a RequestDispatcher.include()?
@@ -183,7 +182,7 @@ public abstract class AbstractMethod
      * Return JAXP document builder instance.
      */
     protected DocumentBuilder getDocumentBuilder()
-        throws WebDavException
+        throws WebdavException
     {
         DocumentBuilder documentBuilder = null;
         DocumentBuilderFactory documentBuilderFactory = null;
@@ -195,7 +194,7 @@ public abstract class AbstractMethod
         }
         catch ( final ParserConfigurationException e )
         {
-            throw new WebDavException( "jaxp failed" );
+            throw new WebdavException( "jaxp failed" );
         }
         return documentBuilder;
     }
@@ -206,7 +205,7 @@ public abstract class AbstractMethod
      * @param req
      * @return the depth from the depth header
      */
-    protected int getDepth( final HttpServletRequest req )
+    protected int getDepth( final WebdavRequest req )
     {
         int depth = INFINITY;
         final String depthStr = req.getHeader( "Depth" );
@@ -261,7 +260,7 @@ public abstract class AbstractMethod
 
     }
 
-    protected String[] getLockIdFromIfHeader( final HttpServletRequest req )
+    protected String[] getLockIdFromIfHeader( final WebdavRequest req )
     {
         String[] ids = new String[2];
         String id = req.getHeader( "If" );
@@ -303,7 +302,7 @@ public abstract class AbstractMethod
         return ids;
     }
 
-    protected String getLockIdFromLockTokenHeader( final HttpServletRequest req )
+    protected String getLockIdFromLockTokenHeader( final WebdavRequest req )
     {
         String id = req.getHeader( "Lock-Token" );
 
@@ -334,7 +333,7 @@ public abstract class AbstractMethod
      * @throws IOException
      * @throws LockFailedException
      */
-    protected boolean checkLocks( final ITransaction transaction, final HttpServletRequest req, final HttpServletResponse resp,
+    protected boolean checkLocks( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
                                   final IResourceLocks resourceLocks, final String path )
         throws IOException, LockFailedException
     {
@@ -391,7 +390,7 @@ public abstract class AbstractMethod
      * @param errorList
      *      List of error to be displayed
      */
-    protected void sendReport( final HttpServletRequest req, final HttpServletResponse resp, final Hashtable<String, WebdavStatus> errorList )
+    protected void sendReport( final WebdavRequest req, final WebdavResponse resp, final Hashtable<String, WebdavStatus> errorList )
         throws IOException
     {
 

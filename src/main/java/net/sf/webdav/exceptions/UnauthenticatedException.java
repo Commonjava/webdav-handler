@@ -16,21 +16,29 @@
 
 package net.sf.webdav.exceptions;
 
-public class UnauthenticatedException extends WebdavException {
+public class UnauthenticatedException
+    extends WebdavException
+{
 
-    public UnauthenticatedException() {
+    private static final long serialVersionUID = 1L;
+
+    public UnauthenticatedException()
+    {
         super();
     }
 
-    public UnauthenticatedException(String message) {
-        super(message);
+    public UnauthenticatedException( final String message )
+    {
+        super( message );
     }
 
-    public UnauthenticatedException(String message, Throwable cause) {
-        super(message, cause);
+    public UnauthenticatedException( final String message, final Throwable cause )
+    {
+        super( message, cause );
     }
 
-    public UnauthenticatedException(Throwable cause) {
-        super(cause);
+    public UnauthenticatedException( final Throwable cause )
+    {
+        super( cause );
     }
 }

@@ -19,8 +19,8 @@ package net.sf.webdav.locking;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-import net.sf.webdav.ITransaction;
 import net.sf.webdav.exceptions.LockFailedException;
+import net.sf.webdav.spi.ITransaction;
 
 /**
  * simple locking management for concurrent data access, NOT the webdav locking.

@@ -1,4 +1,4 @@
-package net.sf.webdav;
+package net.sf.webdav.spi;
 
 public interface IMimeTyper {
 

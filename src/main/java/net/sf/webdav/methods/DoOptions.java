@@ -17,16 +17,16 @@ package net.sf.webdav.methods;
 
 import java.io.IOException;
 
-import net.sf.webdav.ITransaction;
-import net.sf.webdav.IWebdavStore;
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.HttpServletRequest;
-import net.sf.webdav.spi.HttpServletResponse;
+import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.spi.WebdavResponse;
 
 public class DoOptions extends DeterminableMethod {
 
@@ -41,8 +41,8 @@ public class DoOptions extends DeterminableMethod {
         _resourceLocks = resLocks;
     }
 
-    public void execute(ITransaction transaction, HttpServletRequest req,
-            HttpServletResponse resp) throws IOException, LockFailedException {
+    public void execute(ITransaction transaction, WebdavRequest req,
+            WebdavResponse resp) throws IOException, LockFailedException {
 
         LOG.trace("-- " + this.getClass().getName());
 

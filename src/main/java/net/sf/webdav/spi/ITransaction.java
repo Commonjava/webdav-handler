@@ -1,4 +1,4 @@
-package net.sf.webdav;
+package net.sf.webdav.spi;
 
 import java.security.Principal;
 
