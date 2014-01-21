@@ -29,7 +29,9 @@ public class MockHttpServletRequest
 
     private InputStream inputStream;
 
-    private String basePath;
+    private String servicePath;
+
+    private String contextPath;
 
     private String serverName;
 
@@ -110,9 +112,15 @@ public class MockHttpServletRequest
     }
 
     @Override
-    public String getBasePath()
+    public String getContextPath()
     {
-        return basePath;
+        return contextPath;
+    }
+
+    @Override
+    public String getServicePath()
+    {
+        return servicePath;
     }
 
     @Override
@@ -164,9 +172,14 @@ public class MockHttpServletRequest
         this.inputStream = inputStream;
     }
 
-    public void setBasePath( final String basePath )
+    public void setServicePath( final String servicePath )
     {
-        this.basePath = basePath;
+        this.servicePath = servicePath;
+    }
+
+    public void setContextPath( final String contextPath )
+    {
+        this.contextPath = contextPath;
     }
 
     public void setServerName( final String serverName )

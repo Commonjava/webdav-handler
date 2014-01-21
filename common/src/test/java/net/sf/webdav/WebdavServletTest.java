@@ -1,8 +1,5 @@
 package net.sf.webdav;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import net.sf.webdav.impl.ActivationMimeTyper;
 import net.sf.webdav.impl.LocalFileSystemStore;
 import net.sf.webdav.spi.ITransaction;
@@ -170,9 +167,6 @@ public class WebdavServletTest
 
             }
         } );
-
-        final Map<String, String> initParams = new HashMap<String, String>();
-        initParams.put( WebdavService.ROOTPATH_PARAMETER, "./target/tmpTestData" );
 
         final WebdavService servlet =
             new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );

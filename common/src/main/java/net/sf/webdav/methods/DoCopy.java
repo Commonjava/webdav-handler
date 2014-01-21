@@ -473,10 +473,20 @@ public class DoCopy
         // Normalize destination path (remove '.' and' ..')
         destinationPath = normalize( destinationPath );
 
-        final String basePath = req.getBasePath();
-        if ( ( basePath != null ) && ( destinationPath.startsWith( basePath ) ) )
+        final String contextPath = req.getContextPath();
+        if ( ( contextPath != null ) && ( destinationPath.startsWith( contextPath ) ) )
         {
-            destinationPath = destinationPath.substring( basePath.length() );
+            destinationPath = destinationPath.substring( contextPath.length() );
+        }
+
+        final String pathInfo = req.getPathInfo();
+        if ( pathInfo != null )
+        {
+            final String servletPath = req.getServicePath();
+            if ( ( servletPath != null ) && ( destinationPath.startsWith( servletPath ) ) )
+            {
+                destinationPath = destinationPath.substring( servletPath.length() );
+            }
         }
 
         return destinationPath;

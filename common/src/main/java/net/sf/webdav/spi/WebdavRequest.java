@@ -38,6 +38,8 @@ public interface WebdavRequest
 
     int getContentLength();
 
-    String getBasePath();
+    String getContextPath();
+
+    String getServicePath();
 
 }

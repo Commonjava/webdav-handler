@@ -22,14 +22,17 @@ public class VertXWebdavRequest
 
     private final HttpServerRequest request;
 
-    private final String basePath;
+    private final String contextPath;
 
     private final Principal userPrincipal;
 
-    public VertXWebdavRequest( final HttpServerRequest request, final String basePath, final Principal userPrincipal )
+    private final String serviceSubpath;
+
+    public VertXWebdavRequest( final HttpServerRequest request, final String contextPath, final String serviceSubpath, final Principal userPrincipal )
     {
         this.request = request;
-        this.basePath = basePath;
+        this.serviceSubpath = serviceSubpath;
+        this.contextPath = contextPath;
         this.userPrincipal = userPrincipal;
     }
 
@@ -114,9 +117,15 @@ public class VertXWebdavRequest
     }
 
     @Override
-    public String getBasePath()
+    public String getContextPath()
     {
-        return basePath;
+        return contextPath;
+    }
+
+    @Override
+    public String getServicePath()
+    {
+        return serviceSubpath;
     }
 
     @Override

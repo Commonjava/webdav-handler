@@ -306,11 +306,6 @@ public final class RequestUtil
 
     }
 
-    public static String normalize( final String... path )
-    {
-        return normalize( true, path );
-    }
-
     public static String normalize( final boolean absolutize, final String... path )
     {
         if ( path == null || path.length < 1 )

@@ -284,7 +284,19 @@ public class DoPropfind
         // Generating href element
         generatedXML.writeElement( "DAV::href", XMLWriter.OPENING );
 
-        String href = req.getBasePath();
+        String href = req.getContextPath();
+        final String servletPath = req.getServicePath();
+        if ( servletPath != null )
+        {
+            if ( ( href.endsWith( "/" ) ) && ( servletPath.startsWith( "/" ) ) )
+            {
+                href += servletPath.substring( 1 );
+            }
+            else
+            {
+                href += servletPath;
+            }
+        }
         if ( ( href.endsWith( "/" ) ) && ( path.startsWith( "/" ) ) )
         {
             href += path.substring( 1 );

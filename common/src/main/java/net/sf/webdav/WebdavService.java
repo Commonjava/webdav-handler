@@ -1,8 +1,6 @@
 package net.sf.webdav;
 
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Set;
@@ -30,26 +28,15 @@ import net.sf.webdav.spi.IWebdavStore;
 import net.sf.webdav.spi.WebdavConfig;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
-import net.sf.webdav.util.MD5Encoder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebdavService
 {
-
-    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( WebdavService.class );
-
-    public static final String ROOTPATH_PARAMETER = "rootpath";
-
-    /**
-     * MD5 message digest provider.
-     */
-    protected static MessageDigest MD5_HELPER;
-
-    /**
-     * The MD5 helper object for this class.
-     */
-    protected static final MD5Encoder MD5_ENCODER = new MD5Encoder();
-
     private static final boolean READ_ONLY = false;
+
+    private final Logger LOG = LoggerFactory.getLogger( getClass() );
 
     private final ResourceLocks _resLocks;
 
@@ -61,15 +48,6 @@ public class WebdavService
     {
         this.store = store;
         _resLocks = new ResourceLocks();
-
-        try
-        {
-            MD5_HELPER = MessageDigest.getInstance( "MD5" );
-        }
-        catch ( final NoSuchAlgorithmException e )
-        {
-            throw new IllegalStateException();
-        }
 
         final boolean lazyFolderCreationOnPut = config.isLazyFolderCreationOnPut();
 
