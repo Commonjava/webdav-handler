@@ -1,6 +1,7 @@
 package org.commonjava.web.vertx;
 
 import java.io.IOException;
+import java.security.Principal;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -44,10 +45,10 @@ public abstract class VertXWebdavService
         service = new WebdavService( config, store, mimeTyper );
     }
 
-    protected void service( final HttpServerRequest request )
+    protected void service( final HttpServerRequest request, final String basePath, final Principal principal )
         throws WebdavException, IOException
     {
-        service.service( new VertXWebdavRequest( request ), new VertXWebdavResponse( request.response() ) );
+        service.service( new VertXWebdavRequest( request, basePath, principal ), new VertXWebdavResponse( request.response() ) );
     }
 
 }

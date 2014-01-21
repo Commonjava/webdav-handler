@@ -191,7 +191,7 @@ public class DoProppatch
                 // Generating href element
                 generatedXML.writeElement( "DAV::href", XMLWriter.OPENING );
 
-                String href = req.getContextPath();
+                String href = req.getBasePath();
                 if ( ( href.endsWith( "/" ) ) && ( path.startsWith( "/" ) ) )
                 {
                     href += path.substring( 1 );

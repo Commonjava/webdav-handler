@@ -180,7 +180,7 @@ public class DoProppatchTest
                 one( mockRes ).getWriter();
                 will( returnValue( pw ) );
 
-                one( mockReq ).getContextPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "" ) );
             }
         } );

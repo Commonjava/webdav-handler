@@ -89,10 +89,7 @@ public class DoPropfindTest
                 one( mockStore ).getStoredObject( mockTransaction, path );
                 will( returnValue( rootSo ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( path ) );
 
                 one( mockStore ).getChildrenNames( mockTransaction, path );
@@ -103,10 +100,7 @@ public class DoPropfindTest
                 one( mockStore ).getStoredObject( mockTransaction, path + "file1" );
                 will( returnValue( file1So ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( path ) );
 
                 one( mockStore ).getChildrenNames( mockTransaction, path + "file1" );
@@ -117,10 +111,7 @@ public class DoPropfindTest
                 one( mockStore ).getStoredObject( mockTransaction, path + "file2" );
                 will( returnValue( file2So ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( path ) );
 
                 one( mockStore ).getChildrenNames( mockTransaction, path + "file2" );
@@ -180,10 +171,7 @@ public class DoPropfindTest
                 one( mockStore ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/" ) );
             }
         } );

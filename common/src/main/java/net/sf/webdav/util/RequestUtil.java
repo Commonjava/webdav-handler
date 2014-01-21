@@ -18,6 +18,11 @@ package net.sf.webdav.util;
 
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -40,6 +45,56 @@ public final class RequestUtil
     static
     {
         FORMAT.setTimeZone( TimeZone.getTimeZone( "GMT" ) );
+    }
+
+    /**
+     * Shamelessly copied from: http://stackoverflow.com/questions/6824157/parse-accept-language-header-in-java
+     */
+    public static Locale parseLocale( final String header )
+    {
+        //        String header = "en-ca,en;q=0.8,en-us;q=0.6,de-de;q=0.4,de;q=0.2";
+
+        if ( header == null || header.trim()
+                                     .length() < 1 )
+        {
+            return Locale.getDefault();
+        }
+
+        final Map<Double, String> prefs = parseQualityHeader( header );
+
+        final List<Double> sortedKeys = new ArrayList<Double>( prefs.keySet() );
+        Collections.sort( sortedKeys );
+        Collections.reverse( sortedKeys );
+
+        final Locale[] available = Locale.getAvailableLocales();
+        Locale result = null;
+        for ( final Double key : sortedKeys )
+        {
+            final String[] parts = prefs.get( key )
+                                        .split( "_" );
+
+            for ( final Locale l : available )
+            {
+                if ( !parts[0].equals( l.getISO3Language() ) )
+                {
+                    continue;
+                }
+
+                if ( parts.length > 1 && !parts[1].equals( l.getISO3Country() ) )
+                {
+                    continue;
+                }
+
+                if ( parts.length > 2 && !parts[2].equals( l.getVariant() ) )
+                {
+                    continue;
+                }
+
+                result = l;
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -105,6 +160,34 @@ public final class RequestUtil
     //        return ( buf.toString() );
     //    }
 
+    public static Map<Double, String> parseQualityHeader( final String header )
+    {
+        final Map<Double, String> parsed = new HashMap<Double, String>();
+        for ( final String str : header.split( "," ) )
+        {
+            final String[] arr = str.trim()
+                                    .replace( "-", "_" )
+                                    .split( ";" );
+
+            //Parse the q-value
+            Double q = 1.0D;
+            for ( String s : arr )
+            {
+                s = s.trim();
+                if ( s.startsWith( "q=" ) )
+                {
+                    q = Double.parseDouble( s.substring( 2 )
+                                             .trim() );
+                    break;
+                }
+            }
+
+            parsed.put( q, arr[0] );
+        }
+
+        return parsed;
+    }
+
     /**
      * Filter the specified message string for characters that are sensitive in
      * HTML. This avoids potential attacks caused by including JavaScript codes
@@ -153,11 +236,12 @@ public final class RequestUtil
      * "/../", and so on ) it it. <strong>WARNING</strong> - This method is
      * useful only for normalizing application-generated paths. It does not try
      * to perform security checks for malicious input.
+     * @param absolutize 
      * 
      * @param path
      *      Relative path to be normalized
      */
-    public static String normalize( final String path )
+    public static String deRelativize( final boolean absolutize, final String path )
     {
 
         if ( path == null )
@@ -166,45 +250,45 @@ public final class RequestUtil
         }
 
         // Create a place for the normalized path
-        String normalized = path;
+        String result = path;
 
-        if ( normalized.equals( "/." ) )
+        if ( result.equals( "/." ) )
         {
             return "/";
         }
 
         // Add a leading "/" if necessary
-        if ( !normalized.startsWith( "/" ) )
+        if ( absolutize && !result.startsWith( "/" ) )
         {
-            normalized = "/" + normalized;
+            result = "/" + result;
         }
 
         // Resolve occurrences of "//" in the normalized path
         while ( true )
         {
-            final int index = normalized.indexOf( "//" );
+            final int index = result.indexOf( "//" );
             if ( index < 0 )
             {
                 break;
             }
-            normalized = normalized.substring( 0, index ) + normalized.substring( index + 1 );
+            result = result.substring( 0, index ) + result.substring( index + 1 );
         }
 
         // Resolve occurrences of "/./" in the normalized path
         while ( true )
         {
-            final int index = normalized.indexOf( "/./" );
+            final int index = result.indexOf( "/./" );
             if ( index < 0 )
             {
                 break;
             }
-            normalized = normalized.substring( 0, index ) + normalized.substring( index + 2 );
+            result = result.substring( 0, index ) + result.substring( index + 2 );
         }
 
         // Resolve occurrences of "/../" in the normalized path
         while ( true )
         {
-            final int index = normalized.indexOf( "/../" );
+            final int index = result.indexOf( "/../" );
             if ( index < 0 )
             {
                 break;
@@ -213,13 +297,79 @@ public final class RequestUtil
             {
                 return ( null ); // Trying to go outside our context
             }
-            final int index2 = normalized.lastIndexOf( '/', index - 1 );
-            normalized = normalized.substring( 0, index2 ) + normalized.substring( index + 3 );
+            final int index2 = result.lastIndexOf( '/', index - 1 );
+            result = result.substring( 0, index2 ) + result.substring( index + 3 );
         }
 
         // Return the normalized path that we have completed
-        return ( normalized );
+        return result;
 
+    }
+
+    public static String normalize( final String... path )
+    {
+        return normalize( true, path );
+    }
+
+    public static String normalize( final boolean absolutize, final String... path )
+    {
+        if ( path == null || path.length < 1 )
+        {
+            return null;
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        int idx = 0;
+        for ( String part : path )
+        {
+            if ( part.length() < 1 || "/".equals( part ) )
+            {
+                continue;
+            }
+
+            if ( idx == 0 && part.startsWith( "file:" ) )
+            {
+                if ( part.length() > 5 )
+                {
+                    sb.append( part.substring( 5 ) );
+                }
+
+                continue;
+            }
+
+            if ( idx > 0 )
+            {
+                while ( part.charAt( 0 ) == '/' )
+                {
+                    if ( part.length() < 2 )
+                    {
+                        continue;
+                    }
+
+                    part = part.substring( 1 );
+                }
+            }
+
+            while ( part.charAt( part.length() - 1 ) == '/' )
+            {
+                if ( part.length() < 2 )
+                {
+                    continue;
+                }
+
+                part = part.substring( 0, part.length() - 1 );
+            }
+
+            if ( sb.length() > 0 )
+            {
+                sb.append( '/' );
+            }
+
+            sb.append( part );
+            idx++;
+        }
+
+        return deRelativize( absolutize, sb.toString() );
     }
 
     /**

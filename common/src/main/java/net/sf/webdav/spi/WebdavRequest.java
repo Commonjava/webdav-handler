@@ -33,13 +33,11 @@ public interface WebdavRequest
 
     String getServerName();
 
-    String getContextPath();
-
-    String getServletPath();
-
     InputStream getInputStream()
         throws IOException;
 
     int getContentLength();
+
+    String getBasePath();
 
 }

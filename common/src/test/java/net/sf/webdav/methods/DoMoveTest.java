@@ -98,13 +98,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "serverName" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -183,13 +180,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -246,13 +240,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -334,13 +325,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -391,13 +379,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -440,13 +425,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destCollectionPath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -550,13 +532,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destCollectionPath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -612,13 +591,10 @@ public class DoMoveTest
                 one( mockReq ).getServerName();
                 will( returnValue( "server_name" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( overwritePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "servlet_path" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );

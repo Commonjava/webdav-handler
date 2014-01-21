@@ -12,6 +12,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.util.RequestUtil;
 
 public class ServletWebdavRequest
     implements WebdavRequest
@@ -101,15 +102,9 @@ public class ServletWebdavRequest
     }
 
     @Override
-    public String getContextPath()
+    public String getBasePath()
     {
-        return req.getContextPath();
-    }
-
-    @Override
-    public String getServletPath()
-    {
-        return req.getServletPath();
+        return RequestUtil.normalize( req.getContextPath() + "/" + req.getServletPath() );
     }
 
     @Override

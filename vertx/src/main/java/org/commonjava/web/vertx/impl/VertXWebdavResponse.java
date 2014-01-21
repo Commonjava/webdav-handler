@@ -2,18 +2,31 @@ package org.commonjava.web.vertx.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.spi.WebdavResponse;
+import net.sf.webdav.util.URLEncoder;
 
+import org.commonjava.web.vertx.util.VertXOutputStream;
 import org.vertx.java.core.http.HttpServerResponse;
 
 public class VertXWebdavResponse
     implements WebdavResponse
 {
 
+    public static final String CHARSET_HEADER_SEPARATOR = ";\\s*charset=";
+
+    public static final String DATE_HEADER_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
+
     private final HttpServerResponse response;
+
+    private String contentType;
+
+    private String encoding;
 
     public VertXWebdavResponse( final HttpServerResponse response )
     {
@@ -31,23 +44,22 @@ public class VertXWebdavResponse
     public Writer getWriter()
         throws IOException
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new OutputStreamWriter( getOutputStream() );
     }
 
     @Override
     public String encodeRedirectURL( final String url )
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new URLEncoder().encode( url );
     }
 
     @Override
     public void sendRedirect( final String redirectUrl )
         throws IOException
     {
-        // TODO Auto-generated method stub
-
+        response.setStatusCode( 302 );
+        response.setStatusMessage( "Found" );
+        response.putHeader( "Location", redirectUrl );
     }
 
     @Override
@@ -65,19 +77,18 @@ public class VertXWebdavResponse
     }
 
     @Override
-    public void sendError( final WebdavStatus status, final String requestUri )
+    public void sendError( final WebdavStatus status, final String message )
         throws IOException
     {
-        // TODO: Deal with request uri appropriately...
         setStatus( status );
+        response.write( message );
         response.end();
     }
 
     @Override
     public void setDateHeader( final String name, final long date )
     {
-        // TODO Auto-generated method stub
-
+        setHeader( name, new SimpleDateFormat( DATE_HEADER_FORMAT ).format( new Date( date ) ) );
     }
 
     @Override
@@ -87,9 +98,10 @@ public class VertXWebdavResponse
     }
 
     @Override
-    public void setContentType( final String type )
+    public void setContentType( final String contentType )
     {
-        setHeader( "Content-Type", type );
+        this.contentType = contentType;
+        setContentTypeHeader();
     }
 
     @Override
@@ -102,15 +114,30 @@ public class VertXWebdavResponse
     public OutputStream getOutputStream()
         throws IOException
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new VertXOutputStream( response );
     }
 
     @Override
     public void setCharacterEncoding( final String encoding )
     {
-        // TODO Auto-generated method stub
+        this.encoding = encoding;
+        setContentTypeHeader();
+    }
 
+    protected void setContentTypeHeader()
+    {
+        if ( contentType == null || encoding == null )
+        {
+            return;
+        }
+
+        final int idx = contentType.indexOf( CHARSET_HEADER_SEPARATOR );
+        if ( idx > -1 )
+        {
+            contentType = contentType.substring( 0, idx ) + CHARSET_HEADER_SEPARATOR + encoding;
+        }
+
+        setHeader( "Content-Type", contentType );
     }
 
 }

@@ -24,7 +24,7 @@ public interface WebdavResponse
     void sendError( WebdavStatus status )
         throws IOException;
 
-    void sendError( WebdavStatus status, String requestUri )
+    void sendError( WebdavStatus status, String message )
         throws IOException;
 
     void setDateHeader( String name, long date );

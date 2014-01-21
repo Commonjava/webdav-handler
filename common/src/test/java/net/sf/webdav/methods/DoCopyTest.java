@@ -96,13 +96,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "myServer" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( "/destination" ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -162,13 +159,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "myServer" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -226,13 +220,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "myServer" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -337,13 +328,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "serverName" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( sourceFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -387,13 +375,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "serverName" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destCollectionPath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -480,13 +465,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "serverName" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -543,13 +525,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "serverName" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( "/folder/destFolder" ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -624,13 +603,10 @@ public class DoCopyTest
                 one( mockReq ).getServerName();
                 will( returnValue( "serverName" ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "/servletPath" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -684,13 +660,10 @@ public class DoCopyTest
                 one( mockReq ).getHeader( "Destination" );
                 will( returnValue( "http://destination:80".concat( destFilePath ) ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "http://destination:80" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( destCollectionPath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "http://destination:80" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -761,13 +734,10 @@ public class DoCopyTest
                 one( mockReq ).getHeader( "Destination" );
                 will( returnValue( "http://destination:80".concat( destCollectionPath ) ) );
 
-                one( mockReq ).getContextPath();
-                will( returnValue( "http://destination:80" ) );
-
                 one( mockReq ).getPathInfo();
                 will( returnValue( sourceFilePath ) );
 
-                one( mockReq ).getServletPath();
+                one( mockReq ).getBasePath();
                 will( returnValue( "http://destination:80" ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );

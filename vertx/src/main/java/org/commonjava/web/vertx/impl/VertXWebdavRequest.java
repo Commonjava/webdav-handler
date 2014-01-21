@@ -7,18 +7,30 @@ import java.util.Locale;
 import java.util.Set;
 
 import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.util.RequestUtil;
 
+import org.commonjava.web.vertx.util.VertXInputStream;
 import org.vertx.java.core.http.HttpServerRequest;
 
 public class VertXWebdavRequest
     implements WebdavRequest
 {
 
+    private static final String CONTENT_LENGTH = "Content-Length";
+
+    private static final String ACCEPT_LANGUAGE = "Accept-Language";
+
     private final HttpServerRequest request;
 
-    public VertXWebdavRequest( final HttpServerRequest request )
+    private final String basePath;
+
+    private final Principal userPrincipal;
+
+    public VertXWebdavRequest( final HttpServerRequest request, final String basePath, final Principal userPrincipal )
     {
         this.request = request;
+        this.basePath = basePath;
+        this.userPrincipal = userPrincipal;
     }
 
     @Override
@@ -30,8 +42,7 @@ public class VertXWebdavRequest
     @Override
     public Principal getUserPrincipal()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return userPrincipal;
     }
 
     @Override
@@ -58,14 +69,14 @@ public class VertXWebdavRequest
     @Override
     public Set<String> getAttributeNames()
     {
-        // TODO Auto-generated method stub
+        // TODO Implement this for debugging in WebdavService...
         return null;
     }
 
     @Override
     public String getAttribute( final String name )
     {
-        // TODO Auto-generated method stub
+        // TODO Implement this for RequestDispatcher.include() equivalent support...
         return null;
     }
 
@@ -92,8 +103,7 @@ public class VertXWebdavRequest
     @Override
     public Locale getLocale()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return RequestUtil.parseLocale( getHeader( ACCEPT_LANGUAGE ) );
     }
 
     @Override
@@ -104,32 +114,23 @@ public class VertXWebdavRequest
     }
 
     @Override
-    public String getContextPath()
+    public String getBasePath()
     {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public String getServletPath()
-    {
-        // TODO Auto-generated method stub
-        return null;
+        return basePath;
     }
 
     @Override
     public InputStream getInputStream()
         throws IOException
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new VertXInputStream( request );
     }
 
     @Override
     public int getContentLength()
     {
-        // TODO Auto-generated method stub
-        return 0;
+        final String val = getHeader( CONTENT_LENGTH );
+        return val == null ? -1 : Integer.parseInt( val );
     }
 
 }
