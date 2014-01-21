@@ -46,7 +46,7 @@ public enum WebdavStatus
      * another location, but that future references should still use the
      * original URI to access the resource.
      */
-    SC_MOVED_TEMPORARILY( 302, "Moved Temporarily" ),
+    SC_MOVED_TEMPORARILY( 302, "Found" ),
 
     /**
      * Status code (304) indicating that a conditional GET operation found that

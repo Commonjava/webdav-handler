@@ -57,8 +57,8 @@ public class VertXWebdavResponse
     public void sendRedirect( final String redirectUrl )
         throws IOException
     {
-        response.setStatusCode( 302 );
-        response.setStatusMessage( "Found" );
+        response.setStatusCode( WebdavStatus.SC_MOVED_TEMPORARILY.code() );
+        response.setStatusMessage( WebdavStatus.SC_MOVED_TEMPORARILY.message() );
         response.putHeader( "Location", redirectUrl );
     }
 
