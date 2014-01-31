@@ -45,10 +45,12 @@ public abstract class VertXWebdavService
         service = new WebdavService( config, store, mimeTyper );
     }
 
-    protected void service( final HttpServerRequest request, final String contextPath, final String servicePath, final Principal principal )
+    protected void service( final HttpServerRequest request, final String contextPath, final String servicePath, final String serviceSubPath,
+                            final Principal principal )
         throws WebdavException, IOException
     {
-        service.service( new VertXWebdavRequest( request, contextPath, servicePath, principal ), new VertXWebdavResponse( request.response() ) );
+        service.service( new VertXWebdavRequest( request, contextPath, servicePath, serviceSubPath, principal ),
+                         new VertXWebdavResponse( request.response() ) );
     }
 
 }

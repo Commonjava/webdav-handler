@@ -114,7 +114,18 @@ public class VertXWebdavResponse
     public OutputStream getOutputStream()
         throws IOException
     {
-        return new VertXOutputStream( response );
+        return new VertXOutputStream( response )
+        {
+
+            @Override
+            public synchronized void close()
+                throws IOException
+            {
+                super.close();
+                response.end();
+            }
+
+        };
     }
 
     @Override

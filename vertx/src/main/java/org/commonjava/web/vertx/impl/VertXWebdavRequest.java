@@ -2,13 +2,17 @@ package org.commonjava.web.vertx.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.Locale;
 import java.util.Set;
 
+import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.util.RequestUtil;
 
+import org.commonjava.util.logging.Logger;
 import org.commonjava.web.vertx.util.VertXInputStream;
 import org.vertx.java.core.http.HttpServerRequest;
 
@@ -20,20 +24,61 @@ public class VertXWebdavRequest
 
     private static final String ACCEPT_LANGUAGE = "Accept-Language";
 
+    private final Logger logger = new Logger( getClass() );
+
     private final HttpServerRequest request;
 
     private final String contextPath;
 
     private final Principal userPrincipal;
 
-    private final String serviceSubpath;
+    private final String serviceTopPath;
 
-    public VertXWebdavRequest( final HttpServerRequest request, final String contextPath, final String serviceSubpath, final Principal userPrincipal )
+    private final String serviceSubPath;
+
+    private URI requestUri;
+
+    public VertXWebdavRequest( final HttpServerRequest request, final String contextPath, final String serviceTopPath, final String serviceSubPath,
+                               final Principal userPrincipal )
+        throws WebdavException
     {
         this.request = request;
-        this.serviceSubpath = serviceSubpath;
+        this.serviceTopPath = serviceTopPath;
         this.contextPath = contextPath;
+        this.serviceSubPath = serviceSubPath;
         this.userPrincipal = userPrincipal;
+
+        final String hostHeader = request.headers()
+                                         .get( "Host" );
+
+        try
+        {
+            String hostAndPort = request.absoluteURI()
+                                        .getHost();
+
+            final int port = request.absoluteURI()
+                                    .getPort();
+            if ( port != 80 && port != 443 )
+            {
+                hostAndPort += ":" + port;
+            }
+
+            final String uri = request.absoluteURI()
+                                      .toString();
+
+            final int idx = uri.indexOf( hostAndPort );
+
+            final StringBuilder sb = new StringBuilder();
+            sb.append( uri.substring( 0, idx ) );
+            sb.append( hostHeader );
+            sb.append( uri.substring( idx + hostAndPort.length() ) );
+
+            this.requestUri = new URI( sb.toString() );
+        }
+        catch ( final URISyntaxException e )
+        {
+            throw new WebdavException( "Failed to construct requestUri: %s", e, e.getMessage() );
+        }
     }
 
     @Override
@@ -51,8 +96,7 @@ public class VertXWebdavRequest
     @Override
     public String getRequestURI()
     {
-        return request.absoluteURI()
-                      .toString();
+        return requestUri.toString();
     }
 
     @Override
@@ -94,13 +138,14 @@ public class VertXWebdavRequest
     public String getParameter( final String name )
     {
         return request.params()
-                      .get( name );
+                      .get( "q:" + name );
     }
 
     @Override
     public String getPathInfo()
     {
-        return request.path();
+        logger.info( "Path-Info: '%s'", serviceSubPath );
+        return serviceSubPath;
     }
 
     @Override
@@ -112,20 +157,23 @@ public class VertXWebdavRequest
     @Override
     public String getServerName()
     {
-        return request.absoluteURI()
-                      .getHost();
+        logger.info( "Server-Name: '%s'", request.absoluteURI()
+                                                 .getHost() );
+        return requestUri.getHost();
     }
 
     @Override
     public String getContextPath()
     {
+        logger.info( "Context-Path: '%s'", contextPath );
         return contextPath;
     }
 
     @Override
     public String getServicePath()
     {
-        return serviceSubpath;
+        logger.info( "Service-Path: '%s'", serviceTopPath );
+        return serviceTopPath;
     }
 
     @Override

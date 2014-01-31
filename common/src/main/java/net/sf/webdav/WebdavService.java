@@ -165,19 +165,28 @@ public class WebdavService
         LOG.trace( "path: " + req.getRequestURI() );
         LOG.trace( "-----------" );
         Set<String> e = req.getHeaderNames();
-        for ( final String s : e )
+        if ( e != null )
         {
-            LOG.trace( "header: " + s + " " + req.getHeader( s ) );
+            for ( final String s : e )
+            {
+                LOG.trace( "header: " + s + " " + req.getHeader( s ) );
+            }
         }
         e = req.getAttributeNames();
-        for ( final String s : e )
+        if ( e != null )
         {
-            LOG.trace( "attribute: " + s + " " + req.getAttribute( s ) );
+            for ( final String s : e )
+            {
+                LOG.trace( "attribute: " + s + " " + req.getAttribute( s ) );
+            }
         }
         e = req.getParameterNames();
-        for ( final String s : e )
+        if ( e != null )
         {
-            LOG.trace( "parameter: " + s + " " + req.getParameter( s ) );
+            for ( final String s : e )
+            {
+                LOG.trace( "parameter: " + s + " " + req.getParameter( s ) );
+            }
         }
     }
 
