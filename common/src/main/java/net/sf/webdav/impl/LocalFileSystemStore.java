@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.enterprise.inject.Alternative;
+import javax.inject.Named;
+
 import net.sf.webdav.StoredObject;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.spi.ITransaction;
@@ -39,6 +42,8 @@ import net.sf.webdav.spi.IWebdavStore;
  * @author joa
  * @author re
  */
+@Alternative
+@Named
 public class LocalFileSystemStore
     implements IWebdavStore
 {

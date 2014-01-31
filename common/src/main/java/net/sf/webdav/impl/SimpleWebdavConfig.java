@@ -1,7 +1,12 @@
 package net.sf.webdav.impl;
 
+import javax.enterprise.inject.Alternative;
+import javax.inject.Named;
+
 import net.sf.webdav.spi.WebdavConfig;
 
+@Alternative
+@Named
 public class SimpleWebdavConfig
     implements WebdavConfig
 {
