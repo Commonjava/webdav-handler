@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.commonjava.web</groupId>
     <artifactId>webdav-handler</artifactId>
-    <version>3.0</version>
+    <version>3.1-SNAPSHOT</version>
   </parent>
   
   <artifactId>webdav-handler-common</artifactId>
