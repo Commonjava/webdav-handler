@@ -12,6 +12,7 @@ import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.IWebdavStore;
 import net.sf.webdav.spi.WebdavConfig;
 
+import org.apache.commons.io.IOUtils;
 import org.commonjava.web.vertx.impl.VertXWebdavRequest;
 import org.commonjava.web.vertx.impl.VertXWebdavResponse;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -49,8 +50,31 @@ public abstract class VertXWebdavService
                             final Principal principal )
         throws WebdavException, IOException
     {
-        service.service( new VertXWebdavRequest( request, contextPath, servicePath, serviceSubPath, principal ),
-                         new VertXWebdavResponse( request.response() ) );
+        final VertXWebdavResponse response = new VertXWebdavResponse( request.response() );
+        VertXWebdavRequest req = null;
+
+        try
+        {
+            req = new VertXWebdavRequest( request, contextPath, servicePath, serviceSubPath, principal );
+
+            service.service( req, response );
+        }
+        finally
+        {
+            IOUtils.closeQuietly( req );
+            IOUtils.closeQuietly( response );
+
+            try
+            {
+                request.response()
+                       .end();
+            }
+            catch ( final IllegalStateException e )
+            {
+                // TODO Do we need to log this? The end() call is defensive...
+            }
+        }
+
     }
 
 }

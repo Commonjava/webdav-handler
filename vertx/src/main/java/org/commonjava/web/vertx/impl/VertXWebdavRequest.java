@@ -1,5 +1,8 @@
 package org.commonjava.web.vertx.impl;
 
+import static org.apache.commons.lang.StringUtils.join;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -13,11 +16,11 @@ import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.util.RequestUtil;
 
 import org.commonjava.util.logging.Logger;
-import org.commonjava.web.vertx.util.VertXInputStream;
+import org.commonjava.vertx.vabr.util.VertXInputStream;
 import org.vertx.java.core.http.HttpServerRequest;
 
 public class VertXWebdavRequest
-    implements WebdavRequest
+    implements WebdavRequest, Closeable
 {
 
     private static final String CONTENT_LENGTH = "Content-Length";
@@ -42,6 +45,7 @@ public class VertXWebdavRequest
                                final Principal userPrincipal )
         throws WebdavException
     {
+        request.pause();
         this.request = request;
         this.serviceTopPath = serviceTopPath;
         this.contextPath = contextPath;
@@ -84,24 +88,29 @@ public class VertXWebdavRequest
     @Override
     public String getMethod()
     {
+        logger.info( "Method: %s", request.method() );
         return request.method();
     }
 
     @Override
     public Principal getUserPrincipal()
     {
+        logger.info( "User-Principal: %s", userPrincipal );
         return userPrincipal;
     }
 
     @Override
     public String getRequestURI()
     {
+        logger.info( "Request-URI: %s", requestUri );
         return requestUri.toString();
     }
 
     @Override
     public Set<String> getHeaderNames()
     {
+        logger.info( "Header-Names: %s", join( request.headers()
+                                                      .names(), ", " ) );
         return request.headers()
                       .names();
     }
@@ -109,6 +118,8 @@ public class VertXWebdavRequest
     @Override
     public String getHeader( final String name )
     {
+        logger.info( "Header: %s = %s", name, request.headers()
+                                                     .get( name ) );
         return request.headers()
                       .get( name );
     }
@@ -116,20 +127,22 @@ public class VertXWebdavRequest
     @Override
     public Set<String> getAttributeNames()
     {
-        // TODO Implement this for debugging in WebdavService...
+        logger.info( "Attribute-Names: null" );
         return null;
     }
 
     @Override
     public String getAttribute( final String name )
     {
-        // TODO Implement this for RequestDispatcher.include() equivalent support...
+        logger.info( "Attribute: %s = null", name );
         return null;
     }
 
     @Override
     public Set<String> getParameterNames()
     {
+        logger.info( "Get-param-names: %s", join( request.params()
+                                                         .names(), ", " ) );
         return request.params()
                       .names();
     }
@@ -137,6 +150,8 @@ public class VertXWebdavRequest
     @Override
     public String getParameter( final String name )
     {
+        logger.info( "Get-param: %s = %s", name, request.params()
+                                                        .get( "q:" + name ) );
         return request.params()
                       .get( "q:" + name );
     }
@@ -180,6 +195,7 @@ public class VertXWebdavRequest
     public InputStream getInputStream()
         throws IOException
     {
+        logger.info( "Getting input stream" );
         return new VertXInputStream( request );
     }
 
@@ -187,7 +203,17 @@ public class VertXWebdavRequest
     public int getContentLength()
     {
         final String val = getHeader( CONTENT_LENGTH );
-        return val == null ? -1 : Integer.parseInt( val );
+        final int len = val == null ? -1 : Integer.parseInt( val );
+
+        logger.info( "Content-Length: %d", len );
+        return len;
+    }
+
+    @Override
+    public void close()
+        throws IOException
+    {
+        request.resume();
     }
 
 }

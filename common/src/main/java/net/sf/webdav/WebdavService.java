@@ -110,6 +110,8 @@ public class WebdavService
                     methodExecutor = _methodMap.get( "*NO*IMPL*" );
                 }
 
+                LOG.info( "Executing: " + methodExecutor.getClass()
+                                                        .getSimpleName() );
                 methodExecutor.execute( transaction, req, resp );
 
                 store.commit( transaction );

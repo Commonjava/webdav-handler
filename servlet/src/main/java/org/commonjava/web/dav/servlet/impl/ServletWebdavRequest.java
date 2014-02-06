@@ -13,9 +13,13 @@ import javax.servlet.http.HttpServletRequest;
 
 import net.sf.webdav.spi.WebdavRequest;
 
+import org.commonjava.util.logging.Logger;
+
 public class ServletWebdavRequest
     implements WebdavRequest
 {
+
+    private final Logger logger = new Logger( getClass() );
 
     private final HttpServletRequest req;
 
@@ -85,6 +89,7 @@ public class ServletWebdavRequest
     @Override
     public String getPathInfo()
     {
+        logger.info( "Path-Info: %s", req.getPathInfo() );
         return req.getPathInfo();
     }
 
@@ -97,6 +102,7 @@ public class ServletWebdavRequest
     @Override
     public String getServerName()
     {
+        logger.info( "Server-Name: %s", req.getServerName() );
         return req.getServerName();
     }
 
@@ -104,24 +110,28 @@ public class ServletWebdavRequest
     public InputStream getInputStream()
         throws IOException
     {
+        logger.info( "Getting input stream" );
         return req.getInputStream();
     }
 
     @Override
     public int getContentLength()
     {
+        logger.info( "Content-Length: %d", req.getContentLength() );
         return req.getContentLength();
     }
 
     @Override
     public String getContextPath()
     {
+        logger.info( "Context-Path: %s", req.getContextPath() );
         return req.getContextPath();
     }
 
     @Override
     public String getServicePath()
     {
+        logger.info( "Service-Path: %s", req.getServletPath() );
         return req.getServletPath();
     }
 

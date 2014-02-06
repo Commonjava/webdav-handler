@@ -1,5 +1,6 @@
 package org.commonjava.web.vertx.impl;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -11,12 +12,16 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.util.URLEncoder;
 
-import org.commonjava.web.vertx.util.VertXOutputStream;
+import org.apache.commons.io.IOUtils;
+import org.commonjava.util.logging.Logger;
+import org.commonjava.vertx.vabr.util.VertXOutputStream;
 import org.vertx.java.core.http.HttpServerResponse;
 
 public class VertXWebdavResponse
-    implements WebdavResponse
+    implements WebdavResponse, Closeable
 {
+
+    private final Logger logger = new Logger( getClass() );
 
     public static final String CHARSET_HEADER_SEPARATOR = ";\\s*charset=";
 
@@ -28,6 +33,10 @@ public class VertXWebdavResponse
 
     private String encoding;
 
+    private VertXOutputStream outstream;
+
+    private Integer contentLength;
+
     public VertXWebdavResponse( final HttpServerResponse response )
     {
         this.response = response;
@@ -36,6 +45,7 @@ public class VertXWebdavResponse
     @Override
     public void setStatus( final WebdavStatus status )
     {
+        logger.info( "Setting status: %s", status );
         response.setStatusCode( status.code() )
                 .setStatusMessage( status.message() );
     }
@@ -44,12 +54,14 @@ public class VertXWebdavResponse
     public Writer getWriter()
         throws IOException
     {
+        logger.info( "Getting writer" );
         return new OutputStreamWriter( getOutputStream() );
     }
 
     @Override
     public String encodeRedirectURL( final String url )
     {
+        logger.info( "Encoding redirect URL: '%s'", url );
         return new URLEncoder().encode( url );
     }
 
@@ -57,21 +69,24 @@ public class VertXWebdavResponse
     public void sendRedirect( final String redirectUrl )
         throws IOException
     {
+        logger.info( "Sending redirect: '%s'", redirectUrl );
         response.setStatusCode( WebdavStatus.SC_MOVED_TEMPORARILY.code() );
         response.setStatusMessage( WebdavStatus.SC_MOVED_TEMPORARILY.message() );
         response.putHeader( "Location", redirectUrl );
+        response.end();
     }
 
     @Override
     public void addHeader( final String name, final String value )
     {
-        response.putHeader( name, value );
+        setHeader( name, value );
     }
 
     @Override
     public void sendError( final WebdavStatus status )
         throws IOException
     {
+        logger.info( "Setting status: %s\nNo Message", status );
         setStatus( status );
         response.end();
     }
@@ -80,9 +95,9 @@ public class VertXWebdavResponse
     public void sendError( final WebdavStatus status, final String message )
         throws IOException
     {
+        logger.info( "Setting status: %s\nMessage: %s", status, message );
         setStatus( status );
         response.write( message );
-        response.end();
     }
 
     @Override
@@ -94,6 +109,7 @@ public class VertXWebdavResponse
     @Override
     public void setHeader( final String name, final String value )
     {
+        logger.info( "Set header '%s' = '%s'", name, value );
         response.putHeader( name, value );
     }
 
@@ -105,27 +121,28 @@ public class VertXWebdavResponse
     }
 
     @Override
-    public void setContentLength( final int length )
+    public void setContentLength( final int contentLength )
     {
-        setHeader( "Content-Length", Integer.toString( length ) );
+        this.contentLength = contentLength;
+        setHeader( "Content-Length", Integer.toString( contentLength ) );
     }
 
     @Override
-    public OutputStream getOutputStream()
+    public synchronized OutputStream getOutputStream()
         throws IOException
     {
-        return new VertXOutputStream( response )
+        if ( this.contentLength == null )
         {
+            response.setChunked( true );
+        }
 
-            @Override
-            public synchronized void close()
-                throws IOException
-            {
-                super.close();
-                response.end();
-            }
+        logger.info( "Getting output stream" );
+        if ( outstream == null )
+        {
+            outstream = new VertXOutputStream( response );
+        }
 
-        };
+        return outstream;
     }
 
     @Override
@@ -149,6 +166,12 @@ public class VertXWebdavResponse
         }
 
         setHeader( "Content-Type", contentType );
+    }
+
+    @Override
+    public void close()
+    {
+        IOUtils.closeQuietly( outstream );
     }
 
 }
