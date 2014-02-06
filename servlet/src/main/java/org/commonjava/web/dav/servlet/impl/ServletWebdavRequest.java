@@ -43,7 +43,8 @@ public class ServletWebdavRequest
     @Override
     public String getRequestURI()
     {
-        return req.getRequestURI();
+        return req.getRequestURL()
+                  .toString();
     }
 
     @Override
