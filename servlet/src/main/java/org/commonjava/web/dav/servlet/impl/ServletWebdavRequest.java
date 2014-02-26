@@ -13,13 +13,14 @@ import javax.servlet.http.HttpServletRequest;
 
 import net.sf.webdav.spi.WebdavRequest;
 
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServletWebdavRequest
     implements WebdavRequest
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final HttpServletRequest req;
 
@@ -90,7 +91,7 @@ public class ServletWebdavRequest
     @Override
     public String getPathInfo()
     {
-        logger.info( "Path-Info: %s", req.getPathInfo() );
+        logger.info( "Path-Info: {}", req.getPathInfo() );
         return req.getPathInfo();
     }
 
@@ -103,7 +104,7 @@ public class ServletWebdavRequest
     @Override
     public String getServerName()
     {
-        logger.info( "Server-Name: %s", req.getServerName() );
+        logger.info( "Server-Name: {}", req.getServerName() );
         return req.getServerName();
     }
 
@@ -118,21 +119,21 @@ public class ServletWebdavRequest
     @Override
     public int getContentLength()
     {
-        logger.info( "Content-Length: %d", req.getContentLength() );
+        logger.info( "Content-Length: {}", req.getContentLength() );
         return req.getContentLength();
     }
 
     @Override
     public String getContextPath()
     {
-        logger.info( "Context-Path: %s", req.getContextPath() );
+        logger.info( "Context-Path: {}", req.getContextPath() );
         return req.getContextPath();
     }
 
     @Override
     public String getServicePath()
     {
-        logger.info( "Service-Path: %s", req.getServletPath() );
+        logger.info( "Service-Path: {}", req.getServletPath() );
         return req.getServletPath();
     }
 

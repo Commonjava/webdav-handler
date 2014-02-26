@@ -9,13 +9,14 @@ import javax.servlet.http.HttpServletResponse;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.spi.WebdavResponse;
 
-import org.commonjava.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServletWebdavResponse
     implements WebdavResponse
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final HttpServletResponse resp;
 
@@ -41,7 +42,7 @@ public class ServletWebdavResponse
     @Override
     public String encodeRedirectURL( final String url )
     {
-        logger.info( "Encoding redirect URL: '%s'", url );
+        logger.info( "Encoding redirect URL: '{}'", url );
         return resp.encodeRedirectURL( url );
     }
 
@@ -49,7 +50,7 @@ public class ServletWebdavResponse
     public void sendRedirect( final String redirectUrl )
         throws IOException
     {
-        logger.info( "Sending redirect: '%s'", redirectUrl );
+        logger.info( "Sending redirect: '{}'", redirectUrl );
         resp.sendRedirect( redirectUrl );
     }
 
