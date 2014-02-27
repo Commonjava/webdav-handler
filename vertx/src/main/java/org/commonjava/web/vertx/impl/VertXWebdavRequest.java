@@ -1,7 +1,5 @@
 package org.commonjava.web.vertx.impl;
 
-import static org.apache.commons.lang.StringUtils.join;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +11,7 @@ import java.util.Set;
 
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.spi.WebdavRequest;
+import net.sf.webdav.util.JoinString;
 import net.sf.webdav.util.RequestUtil;
 
 import org.commonjava.vertx.vabr.util.VertXInputStream;
@@ -110,8 +109,8 @@ public class VertXWebdavRequest
     @Override
     public Set<String> getHeaderNames()
     {
-        logger.info( "Header-Names: {}", join( request.headers()
-                                                      .names(), ", " ) );
+        logger.info( "Header-Names: {}", new JoinString( ", ", request.headers()
+                                                                      .names() ) );
         return request.headers()
                       .names();
     }
@@ -142,8 +141,8 @@ public class VertXWebdavRequest
     @Override
     public Set<String> getParameterNames()
     {
-        logger.info( "Get-param-names: {}", join( request.params()
-                                                         .names(), ", " ) );
+        logger.info( "Get-param-names: {}", new JoinString( ", ", request.params()
+                                                                         .names() ) );
         return request.params()
                       .names();
     }
