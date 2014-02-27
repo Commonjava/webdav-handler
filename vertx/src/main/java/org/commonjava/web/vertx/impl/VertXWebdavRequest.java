@@ -15,8 +15,9 @@ import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.util.RequestUtil;
 
-import org.commonjava.util.logging.Logger;
 import org.commonjava.vertx.vabr.util.VertXInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.http.HttpServerRequest;
 
 public class VertXWebdavRequest
@@ -27,7 +28,7 @@ public class VertXWebdavRequest
 
     private static final String ACCEPT_LANGUAGE = "Accept-Language";
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final HttpServerRequest request;
 
@@ -81,35 +82,35 @@ public class VertXWebdavRequest
         }
         catch ( final URISyntaxException e )
         {
-            throw new WebdavException( "Failed to construct requestUri: %s", e, e.getMessage() );
+            throw new WebdavException( "Failed to construct requestUri: {}", e, e.getMessage() );
         }
     }
 
     @Override
     public String getMethod()
     {
-        logger.info( "Method: %s", request.method() );
+        logger.info( "Method: {}", request.method() );
         return request.method();
     }
 
     @Override
     public Principal getUserPrincipal()
     {
-        logger.info( "User-Principal: %s", userPrincipal );
+        logger.info( "User-Principal: {}", userPrincipal );
         return userPrincipal;
     }
 
     @Override
     public String getRequestURI()
     {
-        logger.info( "Request-URI: %s", requestUri );
+        logger.info( "Request-URI: {}", requestUri );
         return requestUri.toString();
     }
 
     @Override
     public Set<String> getHeaderNames()
     {
-        logger.info( "Header-Names: %s", join( request.headers()
+        logger.info( "Header-Names: {}", join( request.headers()
                                                       .names(), ", " ) );
         return request.headers()
                       .names();
@@ -118,7 +119,7 @@ public class VertXWebdavRequest
     @Override
     public String getHeader( final String name )
     {
-        logger.info( "Header: %s = %s", name, request.headers()
+        logger.info( "Header: {} = {}", name, request.headers()
                                                      .get( name ) );
         return request.headers()
                       .get( name );
@@ -134,14 +135,14 @@ public class VertXWebdavRequest
     @Override
     public String getAttribute( final String name )
     {
-        logger.info( "Attribute: %s = null", name );
+        logger.info( "Attribute: {} = null", name );
         return null;
     }
 
     @Override
     public Set<String> getParameterNames()
     {
-        logger.info( "Get-param-names: %s", join( request.params()
+        logger.info( "Get-param-names: {}", join( request.params()
                                                          .names(), ", " ) );
         return request.params()
                       .names();
@@ -150,7 +151,7 @@ public class VertXWebdavRequest
     @Override
     public String getParameter( final String name )
     {
-        logger.info( "Get-param: %s = %s", name, request.params()
+        logger.info( "Get-param: {} = {}", name, request.params()
                                                         .get( "q:" + name ) );
         return request.params()
                       .get( "q:" + name );
@@ -159,7 +160,7 @@ public class VertXWebdavRequest
     @Override
     public String getPathInfo()
     {
-        logger.info( "Path-Info: '%s'", serviceSubPath );
+        logger.info( "Path-Info: '{}'", serviceSubPath );
         return serviceSubPath;
     }
 
@@ -172,7 +173,7 @@ public class VertXWebdavRequest
     @Override
     public String getServerName()
     {
-        logger.info( "Server-Name: '%s'", request.absoluteURI()
+        logger.info( "Server-Name: '{}'", request.absoluteURI()
                                                  .getHost() );
         return requestUri.getHost();
     }
@@ -180,14 +181,14 @@ public class VertXWebdavRequest
     @Override
     public String getContextPath()
     {
-        logger.info( "Context-Path: '%s'", contextPath );
+        logger.info( "Context-Path: '{}'", contextPath );
         return contextPath;
     }
 
     @Override
     public String getServicePath()
     {
-        logger.info( "Service-Path: '%s'", serviceTopPath );
+        logger.info( "Service-Path: '{}'", serviceTopPath );
         return serviceTopPath;
     }
 
@@ -205,7 +206,7 @@ public class VertXWebdavRequest
         final String val = getHeader( CONTENT_LENGTH );
         final int len = val == null ? -1 : Integer.parseInt( val );
 
-        logger.info( "Content-Length: %d", len );
+        logger.info( "Content-Length: {}", len );
         return len;
     }
 

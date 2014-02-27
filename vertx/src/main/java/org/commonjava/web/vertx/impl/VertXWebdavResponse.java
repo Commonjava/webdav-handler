@@ -13,15 +13,16 @@ import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.util.URLEncoder;
 
 import org.apache.commons.io.IOUtils;
-import org.commonjava.util.logging.Logger;
 import org.commonjava.vertx.vabr.util.VertXOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.http.HttpServerResponse;
 
 public class VertXWebdavResponse
     implements WebdavResponse, Closeable
 {
 
-    private final Logger logger = new Logger( getClass() );
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     public static final String CHARSET_HEADER_SEPARATOR = ";\\s*charset=";
 
@@ -45,7 +46,7 @@ public class VertXWebdavResponse
     @Override
     public void setStatus( final WebdavStatus status )
     {
-        logger.info( "Setting status: %s", status );
+        logger.info( "Setting status: {}", status );
         response.setStatusCode( status.code() )
                 .setStatusMessage( status.message() );
     }
@@ -61,7 +62,7 @@ public class VertXWebdavResponse
     @Override
     public String encodeRedirectURL( final String url )
     {
-        logger.info( "Encoding redirect URL: '%s'", url );
+        logger.info( "Encoding redirect URL: '{}'", url );
         return new URLEncoder().encode( url );
     }
 
@@ -69,7 +70,7 @@ public class VertXWebdavResponse
     public void sendRedirect( final String redirectUrl )
         throws IOException
     {
-        logger.info( "Sending redirect: '%s'", redirectUrl );
+        logger.info( "Sending redirect: '{}'", redirectUrl );
         response.setStatusCode( WebdavStatus.SC_MOVED_TEMPORARILY.code() );
         response.setStatusMessage( WebdavStatus.SC_MOVED_TEMPORARILY.message() );
         response.putHeader( "Location", redirectUrl );
@@ -86,7 +87,7 @@ public class VertXWebdavResponse
     public void sendError( final WebdavStatus status )
         throws IOException
     {
-        logger.info( "Setting status: %s\nNo Message", status );
+        logger.info( "Setting status: {}\nNo Message", status );
         setStatus( status );
         response.end();
     }
@@ -95,7 +96,7 @@ public class VertXWebdavResponse
     public void sendError( final WebdavStatus status, final String message )
         throws IOException
     {
-        logger.info( "Setting status: %s\nMessage: %s", status, message );
+        logger.info( "Setting status: {}\nMessage: {}", status, message );
         setStatus( status );
         response.write( message );
     }
@@ -109,7 +110,7 @@ public class VertXWebdavResponse
     @Override
     public void setHeader( final String name, final String value )
     {
-        logger.info( "Set header '%s' = '%s'", name, value );
+        logger.info( "Set header '{}' = '{}'", name, value );
         response.putHeader( name, value );
     }
 

@@ -42,11 +42,6 @@
     <module>vertx</module>
   </modules>
   
-  <properties>
-    <vertx.version>2.0.0-final</vertx.version>
-    <vabrVersion>1.2</vabrVersion>
-  </properties>
-  
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -63,28 +58,6 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- Support for Vert.x bindings -->
-      <dependency>
-        <groupId>org.commonjava.vertx</groupId>
-        <artifactId>vabr-api</artifactId>
-        <version>${vabrVersion}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.commonjava.vertx</groupId>
-        <artifactId>vabr-processor</artifactId>
-        <version>${vabrVersion}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-core</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-platform</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
       
       <!-- Support for manually embedding CDI when needed -->
       <dependency>
@@ -125,6 +98,10 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
     </dependency>
   </dependencies>
   
