@@ -231,6 +231,13 @@ public enum WebdavStatus
         return message;
     }
 
+ 
+    public String toString()
+    {
+        return ""+ code;
+    }
+
+    
     public static WebdavStatus get( final int status )
     {
         for ( final WebdavStatus stat : values() )
