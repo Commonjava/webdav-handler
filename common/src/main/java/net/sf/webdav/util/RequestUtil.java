@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Locale.Category;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -57,7 +58,7 @@ public final class RequestUtil
         if ( header == null || header.trim()
                                      .length() < 1 )
         {
-            return Locale.getDefault();
+            return Locale.getDefault( Category.FORMAT );
         }
 
         final Map<Double, String> prefs = parseQualityHeader( header );
@@ -94,7 +95,7 @@ public final class RequestUtil
             }
         }
 
-        return result;
+        return result == null ? Locale.getDefault( Category.FORMAT ) : result;
     }
 
     /**
