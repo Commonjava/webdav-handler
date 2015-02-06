@@ -25,7 +25,7 @@
   
   <groupId>org.commonjava.web</groupId>
   <artifactId>webdav-handler</artifactId>
-  <version>3.1.2-SNAPSHOT</version>
+  <version>3.1.2</version>
   <packaging>pom</packaging>
 
   <name>WebDAV Service Handler :: Parent</name>
@@ -34,6 +34,7 @@
     <connection>scm:git:http://jdcasey@github.com/jdcasey/webdav-handler.git</connection>
     <developerConnection>scm:git:git@github.com:jdcasey/webdav-handler.git</developerConnection>
     <url>http://github.com/jdcasey/webdav-handler</url>
+    <tag>webdav-handler-3.1.2</tag>
   </scm>
   
   <modules>
@@ -47,7 +48,7 @@
       <dependency>
         <groupId>org.commonjava.web</groupId>
         <artifactId>webdav-handler-common</artifactId>
-        <version>3.1.2-SNAPSHOT</version>
+        <version>3.1.2</version>
       </dependency>
       
       <dependency>
