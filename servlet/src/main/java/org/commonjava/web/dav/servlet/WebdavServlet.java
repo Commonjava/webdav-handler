@@ -46,6 +46,7 @@ public class WebdavServlet
 
     private static final long serialVersionUID = 1L;
 
+    @Inject
     private WebdavService dav;
 
     @Inject
@@ -128,7 +129,10 @@ public class WebdavServlet
     @PostConstruct
     public void cdiInit()
     {
-        dav = new WebdavService( davConfig, store, mimeTyper );
+        if ( dav == null )
+        {
+            dav = new WebdavService( davConfig, store, mimeTyper );
+        }
     }
 
     protected IMimeTyper initMimeTyper()
