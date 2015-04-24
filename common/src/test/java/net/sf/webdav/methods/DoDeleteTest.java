@@ -22,7 +22,7 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -34,7 +34,7 @@ public class DoDeleteTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -48,7 +48,7 @@ public class DoDeleteTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -66,9 +66,8 @@ public class DoDeleteTest
             }
         } );
 
-        final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, readOnly );
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -91,16 +90,15 @@ public class DoDeleteTest
 
                 final StoredObject fileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( fileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, new ResourceLocks(), !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -123,16 +121,15 @@ public class DoDeleteTest
 
                 final StoredObject fileSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( fileSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_NOT_FOUND );
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, new ResourceLocks(), !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -155,43 +152,44 @@ public class DoDeleteTest
 
                 final StoredObject folderSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( folderSo ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath );
                 will( returnValue( new String[] { "subFolder", "sourceFile" } ) );
 
                 final StoredObject fileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( fileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
 
                 final StoredObject subFolderSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath + "/subFolder" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath + "/subFolder" );
                 will( returnValue( subFolderSo ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath + "/subFolder" );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath + "/subFolder" );
                 will( returnValue( new String[] { "fileInSubFolder" } ) );
 
                 final StoredObject fileInSubFolderSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath + "/subFolder/fileInSubFolder" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction,
+                                                        sourceCollectionPath + "/subFolder/fileInSubFolder" );
                 will( returnValue( fileInSubFolderSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceCollectionPath + "/subFolder/fileInSubFolder" );
+                one( mockStoreWorker ).removeObject( mockTransaction,
+                                                     sourceCollectionPath + "/subFolder/fileInSubFolder" );
 
-                one( mockStore ).removeObject( mockTransaction, sourceCollectionPath + "/subFolder" );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceCollectionPath + "/subFolder" );
 
-                one( mockStore ).removeObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceCollectionPath );
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, new ResourceLocks(), !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -214,16 +212,15 @@ public class DoDeleteTest
 
                 final StoredObject folderSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( folderSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_NOT_FOUND );
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, new ResourceLocks(), !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -246,16 +243,15 @@ public class DoDeleteTest
 
                 final StoredObject fileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( fileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, new ResourceLocks(), !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -300,9 +296,7 @@ public class DoDeleteTest
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -337,17 +331,15 @@ public class DoDeleteTest
 
                 final StoredObject so = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( so ) );
 
-                one( mockStore ).removeObject( mockTransaction, path );
+                one( mockStoreWorker ).removeObject( mockTransaction, path );
 
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -372,16 +364,15 @@ public class DoDeleteTest
 
                 final StoredObject nonExistingSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, "/folder/file" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/folder/file" );
                 will( returnValue( nonExistingSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_NOT_FOUND );
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, new ResourceLocks(), readOnly );
-
-        doDelete.execute( mockTransaction, mockReq, mockRes );
+        new DoDelete().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }

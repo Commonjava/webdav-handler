@@ -31,13 +31,14 @@ import java.util.Hashtable;
 import javax.xml.parsers.DocumentBuilder;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.util.XMLWriter;
@@ -56,12 +57,6 @@ public class DoLock
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoLock.class );
 
-    private final IWebdavStore _store;
-
-    private final IResourceLocks _resourceLocks;
-
-    private final boolean _readOnly;
-
     private boolean _macLockRequest = false;
 
     private boolean _exclusive = false;
@@ -76,21 +71,16 @@ public class DoLock
 
     private String _userAgent = null;
 
-    public DoLock( final IWebdavStore store, final IResourceLocks resourceLocks, final boolean readOnly )
-    {
-        _store = store;
-        _resourceLocks = resourceLocks;
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, WebdavException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        if ( _readOnly )
+        final IResourceLocks resourceLocks = resources.getResourceLocks();
+        if ( resources.isReadOnly() )
         {
             resp.sendError( SC_FORBIDDEN );
             return;
@@ -102,14 +92,14 @@ public class DoLock
 
             final Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
 
-            if ( !checkLocks( transaction, req, resp, _resourceLocks, _path ) )
+            if ( !checkLocks( transaction, req, resp, resourceLocks, _path ) )
             {
                 errorList.put( _path, SC_LOCKED );
                 sendReport( req, resp, errorList );
                 return; // resource is locked
             }
 
-            if ( !checkLocks( transaction, req, resp, _resourceLocks, _parentPath ) )
+            if ( !checkLocks( transaction, req, resp, resourceLocks, _parentPath ) )
             {
                 errorList.put( _parentPath, SC_LOCKED );
                 sendReport( req, resp, errorList );
@@ -129,17 +119,17 @@ public class DoLock
             }
 
             final String tempLockOwner = "doLock" + System.currentTimeMillis() + req.toString();
-            if ( _resourceLocks.lock( transaction, _path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+            if ( resourceLocks.lock( transaction, _path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
             {
                 try
                 {
                     if ( req.getHeader( "If" ) != null )
                     {
-                        doRefreshLock( transaction, req, resp );
+                        doRefreshLock( transaction, req, resp, resourceLocks );
                     }
                     else
                     {
-                        doLock( transaction, req, resp );
+                        doLock( transaction, req, resp, worker, resourceLocks );
                     }
                 }
                 catch ( final LockFailedException e )
@@ -149,26 +139,27 @@ public class DoLock
                 }
                 finally
                 {
-                    _resourceLocks.unlockTemporaryLockedObjects( transaction, _path, tempLockOwner );
+                    resourceLocks.unlockTemporaryLockedObjects( transaction, _path, tempLockOwner );
                 }
             }
         }
     }
 
-    private void doLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    private void doLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final IResourceLocks resourceLocks )
         throws IOException, WebdavException
     {
 
-        StoredObject so = _store.getStoredObject( transaction, _path );
+        StoredObject so = worker.getStoredObject( transaction, _path );
 
         if ( so != null )
         {
-            doLocking( transaction, req, resp );
+            doLocking( transaction, req, resp, resourceLocks );
         }
         else
         {
             // resource doesn't exist, null-resource lock
-            doNullResourceLock( transaction, req, resp );
+            doNullResourceLock( transaction, req, resp, worker, resourceLocks );
         }
 
         so = null;
@@ -178,13 +169,14 @@ public class DoLock
 
     }
 
-    private void doLocking( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    private void doLocking( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                            final IResourceLocks resourceLocks )
         throws IOException
     {
 
         // Tests if LockObject on requested path exists, and if so, tests
         // exclusivity
-        LockedObject lo = _resourceLocks.getLockedObjectByPath( transaction, _path );
+        LockedObject lo = resourceLocks.getLockedObjectByPath( transaction, _path );
         if ( lo != null )
         {
             if ( lo.isExclusive() )
@@ -196,7 +188,7 @@ public class DoLock
         try
         {
             // Thats the locking itself
-            executeLock( transaction, req, resp );
+            executeLock( transaction, req, resp, resourceLocks );
 
         }
         catch ( final LockFailedException e )
@@ -215,7 +207,9 @@ public class DoLock
 
     }
 
-    private void doNullResourceLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    private void doNullResourceLock( final ITransaction transaction, final WebdavRequest req,
+                                     final WebdavResponse resp, final IWebdavStoreWorker worker,
+                                     final IResourceLocks resourceLocks )
         throws IOException
     {
 
@@ -223,10 +217,10 @@ public class DoLock
 
         try
         {
-            parentSo = _store.getStoredObject( transaction, _parentPath );
+            parentSo = worker.getStoredObject( transaction, _parentPath );
             if ( _parentPath != null && parentSo == null )
             {
-                _store.createFolder( transaction, _parentPath );
+                worker.createFolder( transaction, _parentPath );
             }
             else if ( _parentPath != null && parentSo != null && parentSo.isResource() )
             {
@@ -234,11 +228,11 @@ public class DoLock
                 return;
             }
 
-            nullSo = _store.getStoredObject( transaction, _path );
+            nullSo = worker.getStoredObject( transaction, _path );
             if ( nullSo == null )
             {
                 // resource doesn't exist
-                _store.createResource( transaction, _path );
+                worker.createResource( transaction, _path );
 
                 // Transmit expects 204 response-code, not 201
                 if ( _userAgent != null && _userAgent.indexOf( "Transmit" ) != -1 )
@@ -258,12 +252,12 @@ public class DoLock
                 sendLockFailError( transaction, req, resp );
                 return;
             }
-            nullSo = _store.getStoredObject( transaction, _path );
+            nullSo = worker.getStoredObject( transaction, _path );
             // define the newly created resource as null-resource
             nullSo.setNullResource( true );
 
             // Thats the locking itself
-            executeLock( transaction, req, resp );
+            executeLock( transaction, req, resp, resourceLocks );
 
         }
         catch ( final LockFailedException e )
@@ -282,7 +276,8 @@ public class DoLock
         }
     }
 
-    private void doRefreshLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    private void doRefreshLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                                final IResourceLocks resourceLocks )
         throws IOException, LockFailedException
     {
 
@@ -296,7 +291,7 @@ public class DoLock
         if ( lockToken != null )
         {
             // Getting LockObject of specified lockToken in If header
-            LockedObject refreshLo = _resourceLocks.getLockedObjectByID( transaction, lockToken );
+            LockedObject refreshLo = resourceLocks.getLockedObjectByID( transaction, lockToken );
             if ( refreshLo != null )
             {
                 final int timeout = getTimeout( transaction, req );
@@ -325,7 +320,8 @@ public class DoLock
     /**
      * Executes the LOCK
      */
-    private void executeLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    private void executeLock( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                              final IResourceLocks resourceLocks )
         throws LockFailedException, IOException, WebdavException
     {
 
@@ -334,7 +330,7 @@ public class DoLock
         {
             LOG.trace( "DoLock.execute() : do workaround for user agent '" + _userAgent + "'" );
 
-            doMacLockRequestWorkaround( transaction, req, resp );
+            doMacLockRequestWorkaround( transaction, req, resp, resourceLocks );
         }
         else
         {
@@ -347,17 +343,17 @@ public class DoLock
                 boolean lockSuccess = false;
                 if ( _exclusive )
                 {
-                    lockSuccess = _resourceLocks.exclusiveLock( transaction, _path, _lockOwner, depth, lockDuration );
+                    lockSuccess = resourceLocks.exclusiveLock( transaction, _path, _lockOwner, depth, lockDuration );
                 }
                 else
                 {
-                    lockSuccess = _resourceLocks.sharedLock( transaction, _path, _lockOwner, depth, lockDuration );
+                    lockSuccess = resourceLocks.sharedLock( transaction, _path, _lockOwner, depth, lockDuration );
                 }
 
                 if ( lockSuccess )
                 {
                     // Locks successfully placed - return information about
-                    final LockedObject lo = _resourceLocks.getLockedObjectByPath( transaction, _path );
+                    final LockedObject lo = resourceLocks.getLockedObjectByPath( transaction, _path );
                     if ( lo != null )
                     {
                         generateXMLReport( transaction, resp, lo );
@@ -678,7 +674,8 @@ public class DoLock
     /**
      * Executes the lock for a Mac OS Finder client
      */
-    private void doMacLockRequestWorkaround( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    private void doMacLockRequestWorkaround( final ITransaction transaction, final WebdavRequest req,
+                                             final WebdavResponse resp, final IResourceLocks resourceLocks )
         throws LockFailedException, IOException
     {
         LockedObject lo;
@@ -690,12 +687,12 @@ public class DoLock
         }
 
         boolean lockSuccess = false;
-        lockSuccess = _resourceLocks.exclusiveLock( transaction, _path, _lockOwner, depth, lockDuration );
+        lockSuccess = resourceLocks.exclusiveLock( transaction, _path, _lockOwner, depth, lockDuration );
 
         if ( lockSuccess )
         {
             // Locks successfully placed - return information about
-            lo = _resourceLocks.getLockedObjectByPath( transaction, _path );
+            lo = resourceLocks.getLockedObjectByPath( transaction, _path );
             if ( lo != null )
             {
                 generateXMLReport( transaction, resp, lo );

@@ -26,15 +26,16 @@ import java.io.IOException;
 import java.util.Hashtable;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.ObjectNotFoundException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.util.RequestUtil;
@@ -45,39 +46,25 @@ public class DoCopy
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoCopy.class );
 
-    private final IWebdavStore _store;
-
-    private final ResourceLocks _resourceLocks;
-
-    private final DoDelete _doDelete;
-
-    private final boolean _readOnly;
-
-    public DoCopy( final IWebdavStore store, final ResourceLocks resourceLocks, final DoDelete doDelete, final boolean readOnly )
-    {
-        _store = store;
-        _resourceLocks = resourceLocks;
-        _doDelete = doDelete;
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
         final String path = getRelativePath( req );
-        if ( !_readOnly )
+        if ( !resources.isReadOnly() )
         {
 
             final String tempLockOwner = "doCopy" + System.currentTimeMillis() + req.toString();
-            if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+            if ( resources.getResourceLocks()
+                          .lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
             {
                 try
                 {
-                    if ( !copyResource( transaction, req, resp ) )
+                    if ( !copyResource( transaction, req, resp, worker, resources ) )
                     {
                         return;
                     }
@@ -100,7 +87,8 @@ public class DoCopy
                 }
                 finally
                 {
-                    _resourceLocks.unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
+                    resources.getResourceLocks()
+                             .unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
                 }
             }
             else
@@ -133,7 +121,8 @@ public class DoCopy
      *      when an error occurs while sending the response
      * @throws LockFailedException
      */
-    public boolean copyResource( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public boolean copyResource( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                                 final IWebdavStoreWorker worker, final WebdavResources resources )
         throws WebdavException, IOException, LockFailedException
     {
 
@@ -156,6 +145,7 @@ public class DoCopy
         Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
         final String parentDestinationPath = getParentPath( getCleanPath( destinationPath ) );
 
+        final IResourceLocks _resourceLocks = resources.getResourceLocks();
         if ( !checkLocks( transaction, req, resp, _resourceLocks, parentDestinationPath ) )
         {
             errorList.put( parentDestinationPath, SC_LOCKED );
@@ -188,7 +178,7 @@ public class DoCopy
             StoredObject copySo, destinationSo = null;
             try
             {
-                copySo = _store.getStoredObject( transaction, path );
+                copySo = worker.getStoredObject( transaction, path );
                 // Retrieve the resources
                 if ( copySo == null )
                 {
@@ -206,7 +196,7 @@ public class DoCopy
 
                 errorList = new Hashtable<String, WebdavStatus>();
 
-                destinationSo = _store.getStoredObject( transaction, destinationPath );
+                destinationSo = worker.getStoredObject( transaction, destinationPath );
 
                 if ( overwrite )
                 {
@@ -214,7 +204,8 @@ public class DoCopy
                     // Delete destination resource, if it exists
                     if ( destinationSo != null )
                     {
-                        _doDelete.deleteResource( transaction, destinationPath, errorList, req, resp );
+                        new DoDelete().deleteResource( transaction, destinationPath, errorList, req, resp, worker,
+                                                       resources );
 
                     }
                     else
@@ -237,7 +228,7 @@ public class DoCopy
                     }
 
                 }
-                copy( transaction, path, destinationPath, errorList, req, resp );
+                copy( transaction, path, destinationPath, errorList, req, resp, worker, resources );
 
                 if ( !errorList.isEmpty() )
                 {
@@ -281,20 +272,22 @@ public class DoCopy
      * @throws IOException
      */
     private void copy( final ITransaction transaction, final String sourcePath, final String destinationPath,
-                       final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req, final WebdavResponse resp )
+                       final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req,
+                       final WebdavResponse resp, final IWebdavStoreWorker worker, final WebdavResources resources )
         throws WebdavException, IOException
     {
 
-        final StoredObject sourceSo = _store.getStoredObject( transaction, sourcePath );
+        final StoredObject sourceSo = worker.getStoredObject( transaction, sourcePath );
         if ( sourceSo.isResource() )
         {
-            _store.createResource( transaction, destinationPath );
+            worker.createResource( transaction, destinationPath );
             final long resourceLength =
-                _store.setResourceContent( transaction, destinationPath, _store.getResourceContent( transaction, sourcePath ), null, null );
+                worker.setResourceContent( transaction, destinationPath,
+                                           worker.getResourceContent( transaction, sourcePath ), null, null );
 
             if ( resourceLength != -1 )
             {
-                final StoredObject destinationSo = _store.getStoredObject( transaction, destinationPath );
+                final StoredObject destinationSo = worker.getStoredObject( transaction, destinationPath );
                 destinationSo.setResourceLength( resourceLength );
             }
 
@@ -304,7 +297,7 @@ public class DoCopy
 
             if ( sourceSo.isFolder() )
             {
-                copyFolder( transaction, sourcePath, destinationPath, errorList, req, resp );
+                copyFolder( transaction, sourcePath, destinationPath, errorList, req, resp, worker, resources );
             }
             else
             {
@@ -334,13 +327,14 @@ public class DoCopy
      *      if an error in the underlying store occurs
      */
     private void copyFolder( final ITransaction transaction, final String srcPath, final String destPath,
-                             final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req, final WebdavResponse resp )
+                             final Hashtable<String, WebdavStatus> errorList, final WebdavRequest req,
+                             final WebdavResponse resp, final IWebdavStoreWorker worker, final WebdavResources resources )
         throws WebdavException
     {
         final String sourcePath = getCleanPath( srcPath );
         final String destinationPath = getCleanPath( destPath );
 
-        _store.createFolder( transaction, destinationPath );
+        worker.createFolder( transaction, destinationPath );
         boolean infiniteDepth = true;
         final String depth = req.getHeader( "Depth" );
         if ( depth != null )
@@ -352,7 +346,7 @@ public class DoCopy
         }
         if ( infiniteDepth )
         {
-            String[] children = _store.getChildrenNames( transaction, sourcePath );
+            String[] children = worker.getChildrenNames( transaction, sourcePath );
             children = children == null ? new String[] {} : children;
 
             StoredObject childSo;
@@ -362,24 +356,28 @@ public class DoCopy
 
                 try
                 {
-                    childSo = _store.getStoredObject( transaction, ( sourcePath + children[i] ) );
+                    childSo = worker.getStoredObject( transaction, ( sourcePath + children[i] ) );
                     if ( childSo.isResource() )
                     {
-                        _store.createResource( transaction, destinationPath + children[i] );
+                        worker.createResource( transaction, destinationPath + children[i] );
                         final long resourceLength =
-                            _store.setResourceContent( transaction, destinationPath + children[i],
-                                                       _store.getResourceContent( transaction, sourcePath + children[i] ), null, null );
+                            worker.setResourceContent( transaction,
+                                                       destinationPath + children[i],
+                                                       worker.getResourceContent( transaction, sourcePath + children[i] ),
+                                                       null, null );
 
                         if ( resourceLength != -1 )
                         {
-                            final StoredObject destinationSo = _store.getStoredObject( transaction, destinationPath + children[i] );
+                            final StoredObject destinationSo =
+                                worker.getStoredObject( transaction, destinationPath + children[i] );
                             destinationSo.setResourceLength( resourceLength );
                         }
 
                     }
                     else
                     {
-                        copyFolder( transaction, sourcePath + children[i], destinationPath + children[i], errorList, req, resp );
+                        copyFolder( transaction, sourcePath + children[i], destinationPath + children[i], errorList,
+                                    req, resp, worker, resources );
                     }
                 }
                 catch ( final AccessDeniedException e )

@@ -23,7 +23,7 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -34,7 +34,7 @@ import org.junit.Test;
 public class DoProppatchTest
     extends MockTest
 {
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static IMimeTyper mockMimeTyper;
 
@@ -55,7 +55,7 @@ public class DoProppatchTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockMimeTyper = _mockery.mock( IMimeTyper.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
@@ -74,9 +74,8 @@ public class DoProppatchTest
             }
         } );
 
-        final DoProppatch doProppatch = new DoProppatch( mockStore, new ResourceLocks(), readOnly );
-
-        doProppatch.execute( mockTransaction, mockReq, mockRes );
+        new DoProppatch().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                   newResources( new ResourceLocks(), readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -99,16 +98,15 @@ public class DoProppatchTest
 
                 final StoredObject notExistingSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( notExistingSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_NOT_FOUND );
             }
         } );
 
-        final DoProppatch doProppatch = new DoProppatch( mockStore, new ResourceLocks(), !readOnly );
-
-        doProppatch.execute( mockTransaction, mockReq, mockRes );
+        new DoProppatch().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                   newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -131,7 +129,7 @@ public class DoProppatchTest
 
                 final StoredObject testFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( testFileSo ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -147,9 +145,8 @@ public class DoProppatchTest
             }
         } );
 
-        final DoProppatch doProppatch = new DoProppatch( mockStore, new ResourceLocks(), !readOnly );
-
-        doProppatch.execute( mockTransaction, mockReq, mockRes );
+        new DoProppatch().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                   newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -173,7 +170,7 @@ public class DoProppatchTest
 
                 final StoredObject testFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( testFileSo ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -200,9 +197,8 @@ public class DoProppatchTest
             }
         } );
 
-        final DoProppatch doProppatch = new DoProppatch( mockStore, new ResourceLocks(), !readOnly );
-
-        doProppatch.execute( mockTransaction, mockReq, mockRes );
+        new DoProppatch().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                   newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }

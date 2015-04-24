@@ -22,7 +22,7 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -33,7 +33,7 @@ import org.junit.Test;
 public class DoPropfindTest
     extends MockTest
 {
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static IMimeTyper mockMimeTyper;
 
@@ -51,7 +51,7 @@ public class DoPropfindTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockMimeTyper = _mockery.mock( IMimeTyper.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
@@ -78,7 +78,7 @@ public class DoPropfindTest
 
                 final StoredObject rootSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( rootSo ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -101,7 +101,7 @@ public class DoPropfindTest
                 one( mockMimeTyper ).getMimeType( path );
                 will( returnValue( "text/xml; charset=UTF-8" ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( rootSo ) );
 
                 one( mockReq ).getContextPath();
@@ -110,12 +110,12 @@ public class DoPropfindTest
                 one( mockReq ).getServicePath();
                 will( returnValue( path ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, path );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, path );
                 will( returnValue( new String[] { "file1", "file2" } ) );
 
                 final StoredObject file1So = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path + "file1" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path + "file1" );
                 will( returnValue( file1So ) );
 
                 one( mockReq ).getContextPath();
@@ -124,12 +124,12 @@ public class DoPropfindTest
                 one( mockReq ).getServicePath();
                 will( returnValue( path ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, path + "file1" );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, path + "file1" );
                 will( returnValue( new String[] {} ) );
 
                 final StoredObject file2So = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path + "file2" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path + "file2" );
                 will( returnValue( file2So ) );
 
                 one( mockReq ).getContextPath();
@@ -138,13 +138,13 @@ public class DoPropfindTest
                 one( mockReq ).getServicePath();
                 will( returnValue( path ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, path + "file2" );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, path + "file2" );
                 will( returnValue( new String[] {} ) );
             }
         } );
 
-        final DoPropfind doPropfind = new DoPropfind( mockStore, new ResourceLocks(), mockMimeTyper );
-        doPropfind.execute( mockTransaction, mockReq, mockRes );
+        new DoPropfind().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                  newResources( new ResourceLocks(), mockMimeTyper ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -169,7 +169,7 @@ public class DoPropfindTest
 
                 final StoredObject fileSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
                 one( mockReq ).getAttribute( "javax.servlet.include.request_uri" );
@@ -192,7 +192,7 @@ public class DoPropfindTest
                 one( mockMimeTyper ).getMimeType( path );
                 will( returnValue( "text/xml; charset=UTF-8" ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
                 one( mockReq ).getContextPath();
@@ -203,9 +203,8 @@ public class DoPropfindTest
             }
         } );
 
-        final DoPropfind doPropfind = new DoPropfind( mockStore, new ResourceLocks(), mockMimeTyper );
-
-        doPropfind.execute( mockTransaction, mockReq, mockRes );
+        new DoPropfind().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                  newResources( new ResourceLocks(), mockMimeTyper ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -230,7 +229,7 @@ public class DoPropfindTest
 
                 final StoredObject notExistingSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( notExistingSo ) );
 
                 one( mockRes ).setContentType( "text/xml; charset=UTF-8" );
@@ -242,9 +241,8 @@ public class DoPropfindTest
             }
         } );
 
-        final DoPropfind doPropfind = new DoPropfind( mockStore, new ResourceLocks(), mockMimeTyper );
-
-        doPropfind.execute( mockTransaction, mockReq, mockRes );
+        new DoPropfind().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                  newResources( new ResourceLocks(), mockMimeTyper ) );
 
         _mockery.assertIsSatisfied();
     }

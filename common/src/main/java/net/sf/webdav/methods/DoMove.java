@@ -18,13 +18,15 @@ package net.sf.webdav.methods;
 import java.io.IOException;
 import java.util.Hashtable;
 
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -34,28 +36,14 @@ public class DoMove
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoMove.class );
 
-    private final ResourceLocks _resourceLocks;
-
-    private final DoDelete _doDelete;
-
-    private final DoCopy _doCopy;
-
-    private final boolean _readOnly;
-
-    public DoMove( final ResourceLocks resourceLocks, final DoDelete doDelete, final DoCopy doCopy, final boolean readOnly )
-    {
-        _resourceLocks = resourceLocks;
-        _doDelete = doDelete;
-        _doCopy = doCopy;
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
 
-        if ( !_readOnly )
+        final IResourceLocks _resourceLocks = resources.getResourceLocks();
+        if ( !resources.isReadOnly() )
         {
             LOG.trace( "-- " + this.getClass()
                                    .getName() );
@@ -91,11 +79,11 @@ public class DoMove
                 try
                 {
 
-                    if ( _doCopy.copyResource( transaction, req, resp ) )
+                    if ( new DoCopy().copyResource( transaction, req, resp, worker, resources ) )
                     {
 
                         errorList = new Hashtable<String, WebdavStatus>();
-                        _doDelete.deleteResource( transaction, sourcePath, errorList, req, resp );
+                        new DoDelete().deleteResource( transaction, sourcePath, errorList, req, resp, worker, resources );
                         if ( !errorList.isEmpty() )
                         {
                             sendReport( req, resp, errorList );

@@ -18,57 +18,63 @@ package net.sf.webdav.methods;
 import java.io.IOException;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
-public class DoOptions extends DeterminableMethod {
+public class DoOptions
+    extends DeterminableMethod
+{
 
-    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory
-            .getLogger(DoOptions.class);
+    private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoOptions.class );
 
-    private IWebdavStore _store;
-    private ResourceLocks _resourceLocks;
+    @Override
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
+        throws IOException, LockFailedException
+    {
 
-    public DoOptions(IWebdavStore store, ResourceLocks resLocks) {
-        _store = store;
-        _resourceLocks = resLocks;
-    }
+        LOG.trace( "-- " + this.getClass()
+                               .getName() );
 
-    public void execute(ITransaction transaction, WebdavRequest req,
-            WebdavResponse resp) throws IOException, LockFailedException {
-
-        LOG.trace("-- " + this.getClass().getName());
-
-        String tempLockOwner = "doOptions" + System.currentTimeMillis()
-                + req.toString();
-        String path = getRelativePath(req);
-        if (_resourceLocks.lock(transaction, path, tempLockOwner, false, 0,
-                TEMP_TIMEOUT, TEMPORARY)) {
+        final String tempLockOwner = "doOptions" + System.currentTimeMillis() + req.toString();
+        final String path = getRelativePath( req );
+        final IResourceLocks _resourceLocks = resources.getResourceLocks();
+        if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
+        {
             StoredObject so = null;
-            try {
-                resp.addHeader("DAV", "1, 2");
+            try
+            {
+                resp.addHeader( "DAV", "1, 2" );
 
-                so = _store.getStoredObject(transaction, path);
-                String methodsAllowed = determineMethodsAllowed(so);
-                resp.addHeader("Allow", methodsAllowed);
-                resp.addHeader("MS-Author-Via", "DAV");
-            } catch (AccessDeniedException e) {
-                resp.sendError(WebdavStatus.SC_FORBIDDEN);
-            } catch (WebdavException e) {
-                resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
-            } finally {
-                _resourceLocks.unlockTemporaryLockedObjects(transaction, path,
-                        tempLockOwner);
+                so = worker.getStoredObject( transaction, path );
+                final String methodsAllowed = determineMethodsAllowed( so );
+                resp.addHeader( "Allow", methodsAllowed );
+                resp.addHeader( "MS-Author-Via", "DAV" );
             }
-        } else {
-            resp.sendError(WebdavStatus.SC_INTERNAL_SERVER_ERROR);
+            catch ( final AccessDeniedException e )
+            {
+                resp.sendError( WebdavStatus.SC_FORBIDDEN );
+            }
+            catch ( final WebdavException e )
+            {
+                resp.sendError( WebdavStatus.SC_INTERNAL_SERVER_ERROR );
+            }
+            finally
+            {
+                _resourceLocks.unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
+            }
+        }
+        else
+        {
+            resp.sendError( WebdavStatus.SC_INTERNAL_SERVER_ERROR );
         }
     }
 }

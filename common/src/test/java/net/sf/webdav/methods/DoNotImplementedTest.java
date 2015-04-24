@@ -17,7 +17,7 @@ package net.sf.webdav.methods;
 
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -29,7 +29,7 @@ public class DoNotImplementedTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -41,7 +41,7 @@ public class DoNotImplementedTest
     protected void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -61,8 +61,8 @@ public class DoNotImplementedTest
             }
         } );
 
-        final DoNotImplemented doNotImplemented = new DoNotImplemented( readOnly );
-        doNotImplemented.execute( mockTransaction, mockReq, mockRes );
+        new DoNotImplemented().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                        newResources( null, readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -81,8 +81,8 @@ public class DoNotImplementedTest
             }
         } );
 
-        final DoNotImplemented doNotImplemented = new DoNotImplemented( !readOnly );
-        doNotImplemented.execute( mockTransaction, mockReq, mockRes );
+        new DoNotImplemented().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                        newResources( null, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }

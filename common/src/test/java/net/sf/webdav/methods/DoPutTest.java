@@ -18,12 +18,13 @@ package net.sf.webdav.methods;
 import java.io.PrintWriter;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -34,7 +35,7 @@ import org.junit.Test;
 public class DoPutTest
     extends MockTest
 {
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -54,7 +55,7 @@ public class DoPutTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockResourceLocks = _mockery.mock( IResourceLocks.class );
@@ -73,8 +74,8 @@ public class DoPutTest
             }
         } );
 
-        final DoPut doPut = new DoPut( mockStore, new ResourceLocks(), readOnly, lazyFolderCreationOnPut );
-        doPut.execute( mockTransaction, mockReq, mockRes );
+        new DoPut().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), readOnly, lazyFolderCreationOnPut ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -98,27 +99,27 @@ public class DoPutTest
 
                 final StoredObject parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 StoredObject fileSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, path );
+                one( mockStoreWorker ).createResource( mockTransaction, path );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
                 one( mockReq ).getInputStream();
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, path, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, path, bais, null, null );
                 will( returnValue( 8L ) );
 
                 fileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
                 // User-Agent: Goliath --> dont add ContentLength
@@ -126,8 +127,8 @@ public class DoPutTest
             }
         } );
 
-        final DoPut doPut = new DoPut( mockStore, new ResourceLocks(), !readOnly, lazyFolderCreationOnPut );
-        doPut.execute( mockTransaction, mockReq, mockRes );
+        new DoPut().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), !readOnly, lazyFolderCreationOnPut ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -153,7 +154,7 @@ public class DoPutTest
 
                 final StoredObject parentSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_MULTI_STATUS );
@@ -167,8 +168,8 @@ public class DoPutTest
             }
         } );
 
-        final DoPut doPut = new DoPut( mockStore, new ResourceLocks(), !readOnly, !lazyFolderCreationOnPut );
-        doPut.execute( mockTransaction, mockReq, mockRes );
+        new DoPut().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), !readOnly, !lazyFolderCreationOnPut ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -192,36 +193,36 @@ public class DoPutTest
 
                 final StoredObject parentSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, parentPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, parentPath );
 
                 StoredObject fileSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, path );
+                one( mockStoreWorker ).createResource( mockTransaction, path );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
                 one( mockReq ).getInputStream();
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, path, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, path, bais, null, null );
                 will( returnValue( 8L ) );
 
                 fileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( fileSo ) );
 
             }
         } );
 
-        final DoPut doPut = new DoPut( mockStore, new ResourceLocks(), !readOnly, lazyFolderCreationOnPut );
-        doPut.execute( mockTransaction, mockReq, mockRes );
+        new DoPut().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), !readOnly, lazyFolderCreationOnPut ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -245,15 +246,15 @@ public class DoPutTest
 
                 final StoredObject parentSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_FORBIDDEN );
             }
         } );
 
-        final DoPut doPut = new DoPut( mockStore, new ResourceLocks(), !readOnly, lazyFolderCreationOnPut );
-        doPut.execute( mockTransaction, mockReq, mockRes );
+        new DoPut().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), !readOnly, lazyFolderCreationOnPut ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -297,28 +298,28 @@ public class DoPutTest
 
                 StoredObject lockNullResourceSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( lockNullResourceSo ) );
 
                 StoredObject parentSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, parentPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, parentPath );
 
                 parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( lockNullResourceSo ) );
 
-                one( mockStore ).createResource( mockTransaction, path );
+                one( mockStoreWorker ).createResource( mockTransaction, path );
 
                 lockNullResourceSo = initLockNullStoredObject();
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( lockNullResourceSo ) );
 
                 one( mockReq ).getInputStream();
@@ -392,10 +393,10 @@ public class DoPutTest
 
                 parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( lockNullResourceSo ) );
 
                 one( mockResourceLocks ).getLockedObjectByPath( mockTransaction, path );
@@ -419,12 +420,12 @@ public class DoPutTest
                 one( mockReq ).getInputStream();
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, path, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, path, bais, null, null );
                 will( returnValue( 8L ) );
 
                 final StoredObject newResourceSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( newResourceSo ) );
 
                 one( mockResourceLocks ).unlockTemporaryLockedObjects( with( any( ITransaction.class ) ), with( any( String.class ) ),
@@ -432,11 +433,10 @@ public class DoPutTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, mockResourceLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        final WebdavResources res = newResources( mockResourceLocks, !readOnly, lazyFolderCreationOnPut );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, res );
 
-        final DoPut doPut = new DoPut( mockStore, mockResourceLocks, !readOnly, lazyFolderCreationOnPut );
-        doPut.execute( mockTransaction, mockReq, mockRes );
+        new DoPut().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, res );
 
         _mockery.assertIsSatisfied();
     }

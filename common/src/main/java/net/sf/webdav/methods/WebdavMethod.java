@@ -17,16 +17,19 @@ package net.sf.webdav.methods;
 
 import java.io.IOException;
 
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
 public interface WebdavMethod
 {
 
-    void execute( ITransaction transaction, WebdavRequest req, WebdavResponse resp )
+    void execute( ITransaction transaction, WebdavRequest req, WebdavResponse resp, IWebdavStoreWorker worker,
+                  WebdavResources resources )
         throws IOException, LockFailedException, WebdavException;
 
 }

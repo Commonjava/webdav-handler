@@ -32,15 +32,15 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
-import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.util.XMLHelper;
@@ -72,23 +72,11 @@ public class DoPropfind
      */
     private static final int FIND_PROPERTY_NAMES = 2;
 
-    private final IWebdavStore _store;
-
-    private final ResourceLocks _resourceLocks;
-
-    private final IMimeTyper _mimeTyper;
-
     private int _depth;
 
-    public DoPropfind( final IWebdavStore store, final ResourceLocks resLocks, final IMimeTyper mimeTyper )
-    {
-        _store = store;
-        _resourceLocks = resLocks;
-        _mimeTyper = mimeTyper;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
@@ -99,13 +87,14 @@ public class DoPropfind
         final String tempLockOwner = "doPropfind" + System.currentTimeMillis() + req.toString();
         _depth = getDepth( req );
 
+        final IResourceLocks _resourceLocks = resources.getResourceLocks();
         if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, _depth, TEMP_TIMEOUT, TEMPORARY ) )
         {
 
             StoredObject so = null;
             try
             {
-                so = _store.getStoredObject( transaction, path );
+                so = worker.getStoredObject( transaction, path );
                 if ( so == null )
                 {
                     resp.setContentType( "text/xml; charset=UTF-8" );
@@ -173,12 +162,15 @@ public class DoPropfind
                 generatedXML.writeElement( "DAV::multistatus", XMLWriter.OPENING );
                 if ( _depth == 0 )
                 {
-                    parseProperties( transaction, req, generatedXML, path, propertyFindType, properties, _mimeTyper.getMimeType( path ) );
+                    parseProperties( transaction, req, generatedXML, path, propertyFindType, properties,
+                                     resources.getMimeTyper()
+                                              .getMimeType( path ), worker, resources );
                 }
                 else
                 {
-                    recursiveParseProperties( transaction, path, req, generatedXML, propertyFindType, properties, _depth,
-                                              _mimeTyper.getMimeType( path ) );
+                    recursiveParseProperties( transaction, path, req, generatedXML, propertyFindType, properties,
+                                              _depth, resources.getMimeTyper()
+                                                               .getMimeType( path ), worker, resources );
                 }
                 generatedXML.writeElement( "DAV::multistatus", XMLWriter.CLOSING );
 
@@ -221,18 +213,21 @@ public class DoPropfind
      * @throws IOException
      *      if an error in the underlying store occurs
      */
-    private void recursiveParseProperties( final ITransaction transaction, final String currentPath, final WebdavRequest req,
-                                           final XMLWriter generatedXML, final int propertyFindType, final List<String> properties, final int depth,
-                                           final String mimeType )
+    private void recursiveParseProperties( final ITransaction transaction, final String currentPath,
+                                           final WebdavRequest req, final XMLWriter generatedXML,
+                                           final int propertyFindType, final List<String> properties, final int depth,
+                                           final String mimeType, final IWebdavStoreWorker worker,
+                                           final WebdavResources resources )
         throws WebdavException
     {
 
-        parseProperties( transaction, req, generatedXML, currentPath, propertyFindType, properties, mimeType );
+        parseProperties( transaction, req, generatedXML, currentPath, propertyFindType, properties, mimeType, worker,
+                         resources );
 
         if ( depth > 0 )
         {
             // no need to get name if depth is already zero
-            String[] names = _store.getChildrenNames( transaction, currentPath );
+            String[] names = worker.getChildrenNames( transaction, currentPath );
             names = names == null ? new String[] {} : names;
             String newPath = null;
 
@@ -244,7 +239,8 @@ public class DoPropfind
                     newPath += "/";
                 }
                 newPath += name;
-                recursiveParseProperties( transaction, newPath, req, generatedXML, propertyFindType, properties, depth - 1, mimeType );
+                recursiveParseProperties( transaction, newPath, req, generatedXML, propertyFindType, properties,
+                                          depth - 1, mimeType, worker, resources );
             }
         }
     }
@@ -264,12 +260,14 @@ public class DoPropfind
      *      If the propfind type is find properties by name, then this Vector
      *      contains those properties
      */
-    private void parseProperties( final ITransaction transaction, final WebdavRequest req, final XMLWriter generatedXML, final String path,
-                                  final int type, final List<String> propertiesVector, final String mimeType )
+    private void parseProperties( final ITransaction transaction, final WebdavRequest req,
+                                  final XMLWriter generatedXML, final String path, final int type,
+                                  final List<String> propertiesVector, final String mimeType,
+                                  final IWebdavStoreWorker worker, final WebdavResources resources )
         throws WebdavException
     {
 
-        StoredObject so = _store.getStoredObject( transaction, path );
+        StoredObject so = worker.getStoredObject( transaction, path );
 
         final boolean isFolder = so.isFolder();
         final String creationdate = CREATION_DATE_FORMAT.format( so.getCreationDate() );
@@ -352,9 +350,9 @@ public class DoPropfind
                     generatedXML.writeElement( "DAV::resourcetype", XMLWriter.CLOSING );
                 }
 
-                writeSupportedLockElements( transaction, generatedXML, path );
+                writeSupportedLockElements( transaction, generatedXML, path, resources.getResourceLocks() );
 
-                writeLockDiscoveryElements( transaction, generatedXML, path );
+                writeLockDiscoveryElements( transaction, generatedXML, path, resources.getResourceLocks() );
 
                 generatedXML.writeProperty( "DAV::source", "" );
                 generatedXML.writeElement( "DAV::prop", XMLWriter.CLOSING );
@@ -493,13 +491,13 @@ public class DoPropfind
                     else if ( property.equals( "DAV::supportedlock" ) )
                     {
 
-                        writeSupportedLockElements( transaction, generatedXML, path );
+                        writeSupportedLockElements( transaction, generatedXML, path, resources.getResourceLocks() );
 
                     }
                     else if ( property.equals( "DAV::lockdiscovery" ) )
                     {
 
-                        writeLockDiscoveryElements( transaction, generatedXML, path );
+                        writeLockDiscoveryElements( transaction, generatedXML, path, resources.getResourceLocks() );
 
                     }
                     else
@@ -547,10 +545,11 @@ public class DoPropfind
         so = null;
     }
 
-    private void writeSupportedLockElements( final ITransaction transaction, final XMLWriter generatedXML, final String path )
+    private void writeSupportedLockElements( final ITransaction transaction, final XMLWriter generatedXML,
+                                             final String path, final IResourceLocks resourceLocks )
     {
 
-        LockedObject lo = _resourceLocks.getLockedObjectByPath( transaction, path );
+        LockedObject lo = resourceLocks.getLockedObjectByPath( transaction, path );
 
         generatedXML.writeElement( "DAV::supportedlock", XMLWriter.OPENING );
 
@@ -608,10 +607,11 @@ public class DoPropfind
         lo = null;
     }
 
-    private void writeLockDiscoveryElements( final ITransaction transaction, final XMLWriter generatedXML, final String path )
+    private void writeLockDiscoveryElements( final ITransaction transaction, final XMLWriter generatedXML,
+                                             final String path, final IResourceLocks resourceLocks )
     {
 
-        LockedObject lo = _resourceLocks.getLockedObjectByPath( transaction, path );
+        LockedObject lo = resourceLocks.getLockedObjectByPath( transaction, path );
 
         if ( lo != null && !lo.hasExpired() )
         {

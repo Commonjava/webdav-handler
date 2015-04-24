@@ -27,7 +27,7 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -40,7 +40,7 @@ public class DoGetTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static IMimeTyper mockMimeTyper;
 
@@ -63,7 +63,7 @@ public class DoGetTest
     protected void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockMimeTyper = _mockery.mock( IMimeTyper.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
@@ -86,7 +86,7 @@ public class DoGetTest
 
                 final StoredObject indexSo = null;
 
-                exactly( 2 ).of( mockStore )
+                exactly( 2 ).of( mockStoreWorker )
                             .getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
@@ -99,9 +99,8 @@ public class DoGetTest
             }
         } );
 
-        final DoGet doGet = new DoGet( mockStore, null, null, new ResourceLocks(), mockMimeTyper, false );
-
-        doGet.execute( mockTransaction, mockReq, mockRes );
+        new DoGet().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -122,7 +121,7 @@ public class DoGetTest
 
                 final StoredObject indexSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
                 one( mockReq ).getHeader( "If-None-Match" );
@@ -140,20 +139,19 @@ public class DoGetTest
 
                 final StoredObject so = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( so ) );
 
                 one( mockRes ).getOutputStream();
                 will( returnValue( tos ) );
 
-                one( mockStore ).getResourceContent( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, "/index.html" );
                 will( returnValue( bais ) );
             }
         } );
 
-        final DoGet doGet = new DoGet( mockStore, null, null, new ResourceLocks(), mockMimeTyper, false );
-
-        doGet.execute( mockTransaction, mockReq, mockRes );
+        new DoGet().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         assertEquals( "<hello/>", tos.toString() );
 
@@ -198,7 +196,7 @@ public class DoGetTest
                             .getHeader( "If-None-Match" );
                 will( returnValue( null ) );
 
-                atLeast( 1 ).of( mockStore )
+                atLeast( 1 ).of( mockStoreWorker )
                             .getStoredObject( mockTransaction, "/foo/" );
                 will( returnValue( fooSo ) );
 
@@ -208,24 +206,23 @@ public class DoGetTest
                             .getOutputStream();
                 will( returnValue( tos ) );
 
-                atLeast( 1 ).of( mockStore )
+                atLeast( 1 ).of( mockStoreWorker )
                             .getChildrenNames( mockTransaction, "/foo/" );
                 will( returnValue( new String[] { "AAA", "BBB" } ) );
 
-                atLeast( 1 ).of( mockStore )
+                atLeast( 1 ).of( mockStoreWorker )
                             .getStoredObject( mockTransaction, "/foo//AAA" );
                 will( returnValue( aaaSo ) );
 
-                atLeast( 1 ).of( mockStore )
+                atLeast( 1 ).of( mockStoreWorker )
                             .getStoredObject( mockTransaction, "/foo//BBB" );
                 will( returnValue( bbbSo ) );
 
             }
         } );
 
-        final DoGet doGet = new DoGet( mockStore, null, null, new ResourceLocks(), mockMimeTyper, false );
-
-        doGet.execute( mockTransaction, mockReq, mockRes );
+        new DoGet().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         final String out = tos.toString();
 
@@ -252,7 +249,7 @@ public class DoGetTest
 
                 final StoredObject fooSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, "/foo/" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/foo/" );
                 will( returnValue( fooSo ) );
 
                 one( mockReq ).getRequestURI();
@@ -264,9 +261,8 @@ public class DoGetTest
             }
         } );
 
-        final DoGet doGet = new DoGet( mockStore, "/indexFile", null, new ResourceLocks(), mockMimeTyper, false );
-
-        doGet.execute( mockTransaction, mockReq, mockRes );
+        new DoGet().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -289,12 +285,12 @@ public class DoGetTest
 
                 final StoredObject indexSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
                 final StoredObject alternativeSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, "/alternative" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/alternative" );
                 will( returnValue( alternativeSo ) );
 
                 one( mockReq ).getHeader( "If-None-Match" );
@@ -310,7 +306,7 @@ public class DoGetTest
 
                 one( mockRes ).setContentType( "text/foo" );
 
-                one( mockStore ).getStoredObject( mockTransaction, "/alternative" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/alternative" );
                 will( returnValue( alternativeSo ) );
 
                 tos2.write( resourceContent );
@@ -318,16 +314,15 @@ public class DoGetTest
                 one( mockRes ).getOutputStream();
                 will( returnValue( tos2 ) );
 
-                one( mockStore ).getResourceContent( mockTransaction, "/alternative" );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, "/alternative" );
                 will( returnValue( bais ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NOT_FOUND );
             }
         } );
 
-        final DoGet doGet = new DoGet( mockStore, null, "/alternative", new ResourceLocks(), mockMimeTyper, false );
-
-        doGet.execute( mockTransaction, mockReq, mockRes );
+        new DoGet().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                             newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         assertEquals( "<hello/>", tos2.toString() );
 

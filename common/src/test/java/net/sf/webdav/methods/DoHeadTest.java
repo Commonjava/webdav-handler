@@ -20,7 +20,7 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -33,7 +33,7 @@ public class DoHeadTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static IMimeTyper mockMimeTyper;
 
@@ -51,7 +51,7 @@ public class DoHeadTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockMimeTyper = _mockery.mock( IMimeTyper.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
@@ -75,15 +75,15 @@ public class DoHeadTest
 
                 final StoredObject indexSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NOT_FOUND );
             }
         } );
 
-        final DoHead doHead = new DoHead( mockStore, null, null, new ResourceLocks(), mockMimeTyper, false );
-        doHead.execute( mockTransaction, mockReq, mockRes );
+        new DoHead().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                              newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -104,7 +104,7 @@ public class DoHeadTest
 
                 final StoredObject indexSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
                 one( mockReq ).getHeader( "If-None-Match" );
@@ -122,9 +122,8 @@ public class DoHeadTest
             }
         } );
 
-        final DoHead doHead = new DoHead( mockStore, null, null, new ResourceLocks(), mockMimeTyper, false );
-
-        doHead.execute( mockTransaction, mockReq, mockRes );
+        new DoHead().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                              newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -145,7 +144,7 @@ public class DoHeadTest
 
                 final StoredObject fooSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, "/foo/" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/foo/" );
                 will( returnValue( fooSo ) );
 
                 one( mockReq ).getRequestURI();
@@ -157,9 +156,8 @@ public class DoHeadTest
             }
         } );
 
-        final DoHead doHead = new DoHead( mockStore, "/indexFile", null, new ResourceLocks(), mockMimeTyper, false );
-
-        doHead.execute( mockTransaction, mockReq, mockRes );
+        new DoHead().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                              newResources( new ResourceLocks(), mockMimeTyper, false ) );
 
         _mockery.assertIsSatisfied();
     }

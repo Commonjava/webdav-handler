@@ -19,12 +19,13 @@ import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -36,7 +37,7 @@ public class DoUnlockTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -52,7 +53,7 @@ public class DoUnlockTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -71,9 +72,8 @@ public class DoUnlockTest
             }
         } );
 
-        final DoUnlock doUnlock = new DoUnlock( mockStore, new ResourceLocks(), readOnly );
-
-        doUnlock.execute( mockTransaction, mockReq, mockRes );
+        new DoUnlock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                newResources( new ResourceLocks(), readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -108,16 +108,14 @@ public class DoUnlockTest
 
                 final StoredObject lockedSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( lockedSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
             }
         } );
 
-        final DoUnlock doUnlock = new DoUnlock( mockStore, resLocks, !readOnly );
-
-        doUnlock.execute( mockTransaction, mockReq, mockRes );
+        new DoUnlock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -154,8 +152,7 @@ public class DoUnlockTest
             }
         } );
 
-        final DoUnlock doUnlock = new DoUnlock( mockStore, resLocks, !readOnly );
-        doUnlock.execute( mockTransaction, mockReq, mockRes );
+        new DoUnlock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -185,9 +182,7 @@ public class DoUnlockTest
             }
         } );
 
-        final DoUnlock doUnlock = new DoUnlock( mockStore, resLocks, !readOnly );
-
-        doUnlock.execute( mockTransaction, mockReq, mockRes );
+        new DoUnlock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -238,26 +233,26 @@ public class DoUnlockTest
 
                 StoredObject lockNullResourceSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, nullLoPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, nullLoPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 final StoredObject parentSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, parentPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, parentPath );
 
-                one( mockStore ).getStoredObject( mockTransaction, nullLoPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, nullLoPath );
                 will( returnValue( lockNullResourceSo ) );
 
-                one( mockStore ).createResource( mockTransaction, nullLoPath );
+                one( mockStoreWorker ).createResource( mockTransaction, nullLoPath );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
                 lockNullResourceSo = initLockNullStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, nullLoPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, nullLoPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 one( mockReq ).getInputStream();
@@ -328,10 +323,10 @@ public class DoUnlockTest
                 one( mockResourceLocks ).unlock( mockTransaction, loId, owner );
                 will( returnValue( true ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, nullLoPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, nullLoPath );
                 will( returnValue( lockNullResourceSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, nullLoPath );
+                one( mockStoreWorker ).removeObject( mockTransaction, nullLoPath );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
@@ -341,11 +336,9 @@ public class DoUnlockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, mockResourceLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
-
-        final DoUnlock doUnlock = new DoUnlock( mockStore, mockResourceLocks, !readOnly );
-        doUnlock.execute( mockTransaction, mockReq, mockRes );
+        final WebdavResources res = newResources( mockResourceLocks, !readOnly );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, res );
+        new DoUnlock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, res );
 
         _mockery.assertIsSatisfied();
 

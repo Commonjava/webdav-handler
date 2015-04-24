@@ -24,15 +24,16 @@ import java.io.IOException;
 import java.util.Hashtable;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.ObjectNotFoundException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -42,33 +43,22 @@ public class DoDelete
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoDelete.class );
 
-    private final IWebdavStore _store;
-
-    private final ResourceLocks _resourceLocks;
-
-    private final boolean _readOnly;
-
-    public DoDelete( final IWebdavStore store, final ResourceLocks resourceLocks, final boolean readOnly )
-    {
-        _store = store;
-        _resourceLocks = resourceLocks;
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        if ( !_readOnly )
+        if ( !resources.isReadOnly() )
         {
             final String path = getRelativePath( req );
             final String parentPath = getParentPath( getCleanPath( path ) );
 
             Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
 
+            final IResourceLocks _resourceLocks = resources.getResourceLocks();
             if ( !checkLocks( transaction, req, resp, _resourceLocks, parentPath ) )
             {
                 errorList.put( parentPath, SC_LOCKED );
@@ -89,7 +79,7 @@ public class DoDelete
                 try
                 {
                     errorList = new Hashtable<String, WebdavStatus>();
-                    deleteResource( transaction, path, errorList, req, resp );
+                    deleteResource( transaction, path, errorList, req, resp, worker, resources );
                     if ( !errorList.isEmpty() )
                     {
                         sendReport( req, resp, errorList );
@@ -144,29 +134,31 @@ public class DoDelete
      *      when an error occurs while sending the response
      */
     public void deleteResource( final ITransaction transaction, final String path, final Hashtable<String, WebdavStatus> errorList,
-                                final WebdavRequest req, final WebdavResponse resp )
+ final WebdavRequest req,
+                                final WebdavResponse resp, final IWebdavStoreWorker worker,
+                                final WebdavResources resources )
         throws IOException, WebdavException
     {
 
         resp.setStatus( WebdavStatus.SC_NO_CONTENT );
 
-        if ( !_readOnly )
+        if ( !resources.isReadOnly() )
         {
 
-            StoredObject so = _store.getStoredObject( transaction, path );
+            StoredObject so = worker.getStoredObject( transaction, path );
             if ( so != null )
             {
 
                 if ( so.isResource() )
                 {
-                    _store.removeObject( transaction, path );
+                    worker.removeObject( transaction, path );
                 }
                 else
                 {
                     if ( so.isFolder() )
                     {
-                        deleteFolder( transaction, path, errorList, req, resp );
-                        _store.removeObject( transaction, path );
+                        deleteFolder( transaction, path, errorList, req, resp, worker, resources );
+                        worker.removeObject( transaction, path );
                     }
                     else
                     {
@@ -207,11 +199,13 @@ public class DoDelete
      *      if an error in the underlying store occurs
      */
     private void deleteFolder( final ITransaction transaction, final String path, final Hashtable<String, WebdavStatus> errorList,
-                               final WebdavRequest req, final WebdavResponse resp )
+ final WebdavRequest req,
+                               final WebdavResponse resp, final IWebdavStoreWorker worker,
+                               final WebdavResources resources )
         throws WebdavException
     {
 
-        String[] children = _store.getChildrenNames( transaction, path );
+        String[] children = worker.getChildrenNames( transaction, path );
         children = children == null ? new String[] {} : children;
         StoredObject so = null;
         for ( int i = children.length - 1; i >= 0; i-- )
@@ -219,17 +213,17 @@ public class DoDelete
             children[i] = "/" + children[i];
             try
             {
-                so = _store.getStoredObject( transaction, path + children[i] );
+                so = worker.getStoredObject( transaction, path + children[i] );
                 if ( so.isResource() )
                 {
-                    _store.removeObject( transaction, path + children[i] );
+                    worker.removeObject( transaction, path + children[i] );
 
                 }
                 else
                 {
-                    deleteFolder( transaction, path + children[i], errorList, req, resp );
+                    deleteFolder( transaction, path + children[i], errorList, req, resp, worker, resources );
 
-                    _store.removeObject( transaction, path + children[i] );
+                    worker.removeObject( transaction, path + children[i] );
 
                 }
             }

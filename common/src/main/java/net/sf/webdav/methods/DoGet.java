@@ -22,15 +22,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -40,20 +38,14 @@ public class DoGet
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoGet.class );
 
-    public DoGet( final IWebdavStore store, final String dftIndexFile, final String insteadOf404, final ResourceLocks resourceLocks,
-                  final IMimeTyper mimeTyper, final boolean contentLengthHeader )
-    {
-        super( store, dftIndexFile, insteadOf404, resourceLocks, mimeTyper, contentLengthHeader );
-
-    }
-
     @Override
-    protected void doBody( final ITransaction transaction, final WebdavResponse resp, final String path )
+    protected void doBody( final ITransaction transaction, final WebdavResponse resp, final String path,
+                           final IWebdavStoreWorker worker, final WebdavResources resources )
     {
 
         try
         {
-            final StoredObject so = _store.getStoredObject( transaction, path );
+            final StoredObject so = worker.getStoredObject( transaction, path );
             if ( so.isNullResource() )
             {
                 final String methodsAllowed = DeterminableMethod.determineMethodsAllowed( so );
@@ -62,7 +54,7 @@ public class DoGet
                 return;
             }
             final OutputStream out = resp.getOutputStream();
-            final InputStream in = _store.getResourceContent( transaction, path );
+            final InputStream in = worker.getResourceContent( transaction, path );
             try
             {
                 int read = -1;
@@ -103,11 +95,12 @@ public class DoGet
     }
 
     @Override
-    protected void folderBody( final ITransaction transaction, final String path, final WebdavResponse resp, final WebdavRequest req )
+    protected void folderBody( final ITransaction transaction, final String path, final WebdavResponse resp,
+                               final WebdavRequest req, final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, WebdavException
     {
 
-        final StoredObject so = _store.getStoredObject( transaction, path );
+        final StoredObject so = worker.getStoredObject( transaction, path );
         if ( so == null )
         {
             resp.sendError( SC_NOT_FOUND, req.getRequestURI() );
@@ -131,7 +124,7 @@ public class DoGet
                 resp.setContentType( "text/html" );
                 resp.setCharacterEncoding( "UTF8" );
                 final OutputStream out = resp.getOutputStream();
-                String[] children = _store.getChildrenNames( transaction, path );
+                String[] children = worker.getChildrenNames( transaction, path );
                 children = children == null ? new String[] {} : children;
 
                 // FIXME Use a content template for this!!
@@ -157,7 +150,7 @@ public class DoGet
                     childrenTemp.append( "<td>" );
                     childrenTemp.append( "<a href=\"" );
                     childrenTemp.append( child );
-                    final StoredObject obj = _store.getStoredObject( transaction, path + "/" + child );
+                    final StoredObject obj = worker.getStoredObject( transaction, path + "/" + child );
                     if ( obj.isFolder() )
                     {
                         childrenTemp.append( "/" );
@@ -254,7 +247,7 @@ public class DoGet
      */
     protected DateFormat getDateTimeFormat( final Locale browserLocale )
     {
-        return SimpleDateFormat.getDateTimeInstance( SimpleDateFormat.SHORT, SimpleDateFormat.MEDIUM, browserLocale );
+        return DateFormat.getDateTimeInstance( DateFormat.SHORT, DateFormat.MEDIUM, browserLocale );
     }
 
     /**

@@ -19,12 +19,13 @@ import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -36,7 +37,7 @@ public class DoMkcolTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -56,7 +57,7 @@ public class DoMkcolTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -76,8 +77,7 @@ public class DoMkcolTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoMkcol doMkcol = new DoMkcol( mockStore, resLocks, readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -98,15 +98,15 @@ public class DoMkcolTest
 
                 final StoredObject parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 final StoredObject mkcolSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( mkcolSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, mkcolPath );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
@@ -114,8 +114,7 @@ public class DoMkcolTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoMkcol doMkcol = new DoMkcol( mockStore, resLocks, !readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -136,7 +135,7 @@ public class DoMkcolTest
 
                 final StoredObject parentSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 final String methodsAllowed = "OPTIONS, GET, HEAD, POST, DELETE, TRACE, " + "PROPPATCH, COPY, MOVE, LOCK, UNLOCK, PROPFIND";
@@ -148,8 +147,7 @@ public class DoMkcolTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoMkcol doMkcol = new DoMkcol( mockStore, resLocks, !readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -170,12 +168,12 @@ public class DoMkcolTest
 
                 final StoredObject parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 final StoredObject mkcolSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( mkcolSo ) );
 
                 one( mockRes ).addHeader( "Allow", "OPTIONS, GET, HEAD, POST, DELETE, TRACE, PROPPATCH, COPY, MOVE, LOCK, UNLOCK, PROPFIND, PUT" );
@@ -186,8 +184,7 @@ public class DoMkcolTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoMkcol doMkcol = new DoMkcol( mockStore, resLocks, !readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -216,23 +213,22 @@ public class DoMkcolTest
 
                 final StoredObject parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
                 final StoredObject mkcolSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( mkcolSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, mkcolPath );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
             }
         } );
 
-        final DoMkcol doMkcol = new DoMkcol( mockStore, resLocks, !readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -262,8 +258,7 @@ public class DoMkcolTest
             }
         } );
 
-        final DoMkcol doMkcol = new DoMkcol( mockStore, resLocks, !readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -311,28 +306,28 @@ public class DoMkcolTest
 
                 StoredObject lockNullResourceSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 StoredObject parentSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, parentPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, parentPath );
 
                 parentSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( lockNullResourceSo ) );
 
-                one( mockStore ).createResource( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).createResource( mockTransaction, mkcolPath );
 
                 lockNullResourceSo = initLockNullStoredObject();
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 one( mockReq ).getInputStream();
@@ -390,10 +385,10 @@ public class DoMkcolTest
                                                with( any( boolean.class ) ) );
                 will( returnValue( true ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, mkcolPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, mkcolPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 one( mockResourceLocks ).getLockedObjectByPath( mockTransaction, mkcolPath );
@@ -422,11 +417,9 @@ public class DoMkcolTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, mockResourceLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
-
-        final DoMkcol doMkcol = new DoMkcol( mockStore, mockResourceLocks, !readOnly );
-        doMkcol.execute( mockTransaction, mockReq, mockRes );
+        final WebdavResources res = newResources( mockResourceLocks, !readOnly );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, res );
+        new DoMkcol().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, res );
 
         _mockery.assertIsSatisfied();
     }

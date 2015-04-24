@@ -20,7 +20,9 @@ import static net.sf.webdav.WebdavStatus.SC_NOT_IMPLEMENTED;
 
 import java.io.IOException;
 
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.spi.ITransaction;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -30,20 +32,14 @@ public class DoNotImplemented
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoNotImplemented.class );
 
-    private final boolean _readOnly;
-
-    public DoNotImplemented( final boolean readOnly )
-    {
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException
     {
         LOG.trace( "-- " + req.getMethod() );
 
-        if ( _readOnly )
+        if ( resources.isReadOnly() )
         {
             resp.sendError( SC_FORBIDDEN );
         }

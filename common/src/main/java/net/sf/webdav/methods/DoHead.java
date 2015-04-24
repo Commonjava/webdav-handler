@@ -21,14 +21,14 @@ import static net.sf.webdav.WebdavStatus.SC_NOT_MODIFIED;
 import java.io.IOException;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.ObjectAlreadyExistsException;
 import net.sf.webdav.exceptions.WebdavException;
-import net.sf.webdav.locking.ResourceLocks;
-import net.sf.webdav.spi.IMimeTyper;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -36,33 +36,15 @@ public class DoHead
     extends AbstractMethod
 {
 
-    protected String _dftIndexFile;
-
-    protected IWebdavStore _store;
-
-    protected String _insteadOf404;
-
-    protected ResourceLocks _resourceLocks;
-
-    protected IMimeTyper _mimeTyper;
-
-    protected boolean _contentLength;
-
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoHead.class );
 
-    public DoHead( final IWebdavStore store, final String dftIndexFile, final String insteadOf404, final ResourceLocks resourceLocks,
-                   final IMimeTyper mimeTyper, final boolean contentLengthHeader )
+    public DoHead()
     {
-        _store = store;
-        _dftIndexFile = dftIndexFile;
-        _insteadOf404 = insteadOf404;
-        _resourceLocks = resourceLocks;
-        _mimeTyper = mimeTyper;
-        _contentLength = contentLengthHeader;
     }
 
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, WebdavException
     {
 
@@ -74,14 +56,14 @@ public class DoHead
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        StoredObject so = _store.getStoredObject( transaction, path );
+        StoredObject so = worker.getStoredObject( transaction, path );
         if ( so == null )
         {
-            if ( this._insteadOf404 != null && !_insteadOf404.trim()
-                                                             .equals( "" ) )
+            if ( resources.getAlt404Path() != null && !resources.getAlt404Path()
+                                                                .equals( "" ) )
             {
-                path = this._insteadOf404;
-                so = _store.getStoredObject( transaction, this._insteadOf404 );
+                path = resources.getAlt404Path();
+                so = worker.getStoredObject( transaction, path );
             }
         }
         else
@@ -93,10 +75,11 @@ public class DoHead
         {
             if ( so.isFolder() )
             {
+                final String _dftIndexFile = resources.getDefaultIndexFile();
                 if ( _dftIndexFile != null && !_dftIndexFile.trim()
                                                             .equals( "" ) )
                 {
-                    resp.sendRedirect( resp.encodeRedirectURL( req.getRequestURI() + this._dftIndexFile ) );
+                    resp.sendRedirect( resp.encodeRedirectURL( req.getRequestURI() + _dftIndexFile ) );
                     return;
                 }
             }
@@ -110,6 +93,7 @@ public class DoHead
 
             final String tempLockOwner = "doGet" + System.currentTimeMillis() + req.toString();
 
+            final IResourceLocks _resourceLocks = resources.getResourceLocks();
             if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
             {
                 try
@@ -145,7 +129,7 @@ public class DoHead
 
                             final long resourceLength = so.getResourceLength();
 
-                            if ( _contentLength )
+                            if ( resources.isSendContentLength() )
                             {
                                 if ( resourceLength > 0 )
                                 {
@@ -162,7 +146,8 @@ public class DoHead
                                 }
                             }
 
-                            final String mimeType = _mimeTyper.getMimeType( path );
+                            final String mimeType = resources.getMimeTyper()
+                                                             .getMimeType( path );
                             if ( mimeType != null )
                             {
                                 resp.setContentType( mimeType );
@@ -178,12 +163,12 @@ public class DoHead
                                 }
                             }
 
-                            doBody( transaction, resp, path );
+                            doBody( transaction, resp, path, worker, resources );
                         }
                     }
                     else
                     {
-                        folderBody( transaction, path, resp, req );
+                        folderBody( transaction, path, resp, req, worker, resources );
                     }
                 }
                 catch ( final AccessDeniedException e )
@@ -210,7 +195,7 @@ public class DoHead
         }
         else
         {
-            folderBody( transaction, path, resp, req );
+            folderBody( transaction, path, resp, req, worker, resources );
         }
 
         if ( !bUriExists )
@@ -220,13 +205,15 @@ public class DoHead
 
     }
 
-    protected void folderBody( final ITransaction transaction, final String path, final WebdavResponse resp, final WebdavRequest req )
+    protected void folderBody( final ITransaction transaction, final String path, final WebdavResponse resp,
+                               final WebdavRequest req, final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, WebdavException
     {
         // no body for HEAD
     }
 
-    protected void doBody( final ITransaction transaction, final WebdavResponse resp, final String path )
+    protected void doBody( final ITransaction transaction, final WebdavResponse resp, final String path,
+                           final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, WebdavException
     {
         // no body for HEAD

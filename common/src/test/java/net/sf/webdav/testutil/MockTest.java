@@ -19,8 +19,11 @@ import java.io.ByteArrayInputStream;
 import java.util.Date;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
+import net.sf.webdav.spi.IMimeTyper;
 
 import org.jmock.Mockery;
 import org.jmock.api.ExpectationError;
@@ -139,6 +142,34 @@ public abstract class MockTest
         final StoredObject so = initStoredObject( false, resourceContent );
 
         return so;
+    }
+
+    protected WebdavResources newResources( final IResourceLocks resourceLocks, final IMimeTyper mimeTyper,
+                                            final boolean sendContentLength )
+    {
+        return new WebdavResources( null, null, resourceLocks == null ? new ResourceLocks() : resourceLocks, mimeTyper,
+                                    sendContentLength, readOnly, false );
+    }
+
+    protected WebdavResources newResources( final IResourceLocks resourceLocks, final IMimeTyper mimeTyper )
+    {
+        return new WebdavResources( null, null, resourceLocks == null ? new ResourceLocks() : resourceLocks, mimeTyper,
+                        false,
+                        readOnly, false );
+    }
+
+    protected WebdavResources newResources( final IResourceLocks resourceLocks, final boolean readOnly )
+    {
+        return new WebdavResources( null, null, resourceLocks == null ? new ResourceLocks() : resourceLocks, null,
+                                    false,
+                                    readOnly, false );
+    }
+
+    protected WebdavResources newResources( final IResourceLocks resourceLocks, final boolean readOnly,
+                                            final boolean lazyFolderCreationOnPut )
+    {
+        return new WebdavResources( null, null, resourceLocks == null ? new ResourceLocks() : resourceLocks, null,
+                                    false, readOnly, lazyFolderCreationOnPut );
     }
 
     private static StoredObject initStoredObject( final boolean isFolder, final byte[] resourceContent )

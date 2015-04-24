@@ -22,7 +22,7 @@ import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.IMimeTyper;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -34,7 +34,7 @@ public class DoOptionsTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -50,7 +50,7 @@ public class DoOptionsTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockMimeTyper = _mockery.mock( IMimeTyper.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
@@ -75,7 +75,7 @@ public class DoOptionsTest
 
                 final StoredObject indexSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
                 one( mockRes ).addHeader( "Allow", "OPTIONS, GET, HEAD, POST, DELETE, " + "TRACE, PROPPATCH, COPY, " + "MOVE, LOCK, UNLOCK, PROPFIND" );
@@ -84,8 +84,8 @@ public class DoOptionsTest
             }
         } );
 
-        final DoOptions doOptions = new DoOptions( mockStore, new ResourceLocks() );
-        doOptions.execute( mockTransaction, mockReq, mockRes );
+        new DoOptions().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                 newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -108,7 +108,7 @@ public class DoOptionsTest
 
                 final StoredObject indexSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, "/index.html" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, "/index.html" );
                 will( returnValue( indexSo ) );
 
                 one( mockRes ).addHeader( "Allow", "OPTIONS, MKCOL, PUT" );
@@ -117,8 +117,8 @@ public class DoOptionsTest
             }
         } );
 
-        final DoOptions doOptions = new DoOptions( mockStore, new ResourceLocks() );
-        doOptions.execute( mockTransaction, mockReq, mockRes );
+        new DoOptions().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                                 newResources( new ResourceLocks(), !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }

@@ -95,7 +95,8 @@ public class WebdavServletTest
         {
         } );
 
-        new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );
+        new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ),
+                           new ActivationMimeTyper() );
 
         _mockery.assertIsSatisfied();
     }
@@ -137,7 +138,8 @@ public class WebdavServletTest
             }
         } );
 
-        new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );
+        new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ),
+                           new ActivationMimeTyper() );
 
         _mockery.assertIsSatisfied();
     }
@@ -184,7 +186,8 @@ public class WebdavServletTest
         } );
 
         final WebdavService servlet =
-            new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ), new ActivationMimeTyper() );
+            new WebdavService( config, new LocalFileSystemStore( tempFolder.newFolder( "davRoot" ) ),
+                               new ActivationMimeTyper() );
 
         servlet.service( mockReq, mockRes );
 

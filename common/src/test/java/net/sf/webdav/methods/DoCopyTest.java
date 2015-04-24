@@ -23,7 +23,7 @@ import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -35,7 +35,7 @@ public class DoCopyTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -51,7 +51,7 @@ public class DoCopyTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -75,11 +75,9 @@ public class DoCopyTest
             }
         } );
 
-        final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        final DoCopy doCopy = new DoCopy();
+        doCopy.execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                        newResources( new ResourceLocks(), readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -131,7 +129,7 @@ public class DoCopyTest
 
                 final StoredObject so = initLockNullStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, path );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, path );
                 will( returnValue( so ) );
 
                 one( mockRes ).addHeader( "Allow", "OPTIONS, MKCOL, PUT, PROPFIND, LOCK, UNLOCK" );
@@ -140,10 +138,8 @@ public class DoCopyTest
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        final DoCopy doCopy = new DoCopy();
+        doCopy.execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -205,10 +201,8 @@ public class DoCopyTest
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        final DoCopy doCopy = new DoCopy();
+        doCopy.execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -264,39 +258,37 @@ public class DoCopyTest
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
                 StoredObject destFileSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destFilePath );
+                one( mockStoreWorker ).createResource( mockTransaction, destFilePath );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
                 will( returnValue( resourceLength ) );
 
                 destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
             }
         } );
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        final DoCopy doCopy = new DoCopy();
+        doCopy.execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -323,10 +315,8 @@ public class DoCopyTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        final DoCopy doCopy = new DoCopy();
+        doCopy.execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
 
@@ -374,10 +364,7 @@ public class DoCopyTest
 
         final ResourceLocks resLocks = new ResourceLocks();
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -422,44 +409,45 @@ public class DoCopyTest
 
                 final StoredObject sourceCollectionSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
                 final StoredObject destCollectionSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, destCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destCollectionPath );
                 will( returnValue( destCollectionSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, destCollectionPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, destCollectionPath );
 
                 one( mockReq ).getHeader( "Depth" );
                 will( returnValue( "-1" ) );
 
                 sourceChildren = new String[] { "sourceFile" };
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceChildren ) );
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destCollectionPath + "/sourceFile" );
+                one( mockStoreWorker ).createResource( mockTransaction, destCollectionPath + "/sourceFile" );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais,
+                                                           null, null );
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destCollectionPath + "/sourceFile" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destCollectionPath + "/sourceFile" );
                 will( returnValue( destFileSo ) );
 
             }
@@ -467,10 +455,7 @@ public class DoCopyTest
 
         final ResourceLocks resLocks = new ResourceLocks();
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -515,7 +500,7 @@ public class DoCopyTest
 
                 final StoredObject notExistSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( notExistSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_NOT_FOUND );
@@ -525,10 +510,7 @@ public class DoCopyTest
 
         final ResourceLocks resLocks = new ResourceLocks();
 
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -549,7 +531,7 @@ public class DoCopyTest
 
                 final StoredObject sourceSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceSo ) );
 
                 one( mockReq ).getHeader( "Destination" );
@@ -575,7 +557,7 @@ public class DoCopyTest
 
                 final StoredObject existingDestSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( existingDestSo ) );
 
                 one( mockReq ).getHeader( "Overwrite" );
@@ -583,32 +565,29 @@ public class DoCopyTest
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( existingDestSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, destFilePath );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destFilePath );
+                one( mockStoreWorker ).createResource( mockTransaction, destFilePath );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( existingDestSo ) );
 
             }
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
 
@@ -630,7 +609,7 @@ public class DoCopyTest
 
                 final StoredObject sourceSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceSo ) );
 
                 one( mockReq ).getHeader( "Destination" );
@@ -656,7 +635,7 @@ public class DoCopyTest
 
                 final StoredObject existingDestSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( existingDestSo ) );
 
                 one( mockReq ).getHeader( "Overwrite" );
@@ -668,10 +647,7 @@ public class DoCopyTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
 
@@ -693,7 +669,7 @@ public class DoCopyTest
 
                 final StoredObject sourceSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceSo ) );
 
                 one( mockReq ).getHeader( "Destination" );
@@ -719,36 +695,33 @@ public class DoCopyTest
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, destFilePath );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destFilePath );
+                one( mockStoreWorker ).createResource( mockTransaction, destFilePath );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
             }
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
 
@@ -770,7 +743,7 @@ public class DoCopyTest
 
                 final StoredObject sourceSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceSo ) );
 
                 one( mockReq ).getHeader( "Destination" );
@@ -796,7 +769,7 @@ public class DoCopyTest
 
                 final StoredObject existingDestSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, destCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destCollectionPath );
                 will( returnValue( existingDestSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_PRECONDITION_FAILED );
@@ -804,10 +777,7 @@ public class DoCopyTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-        doCopy.execute( mockTransaction, mockReq, mockRes );
+        new DoCopy().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
 

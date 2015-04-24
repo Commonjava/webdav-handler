@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Hashtable;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
@@ -26,7 +27,7 @@ import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -36,27 +37,16 @@ public class DoMkcol
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoMkcol.class );
 
-    private final IWebdavStore _store;
-
-    private final IResourceLocks _resourceLocks;
-
-    private final boolean _readOnly;
-
-    public DoMkcol( final IWebdavStore store, final IResourceLocks resourceLocks, final boolean readOnly )
-    {
-        _store = store;
-        _resourceLocks = resourceLocks;
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        if ( !_readOnly )
+        final IResourceLocks _resourceLocks = resources.getResourceLocks();
+        if ( !resources.isReadOnly() )
         {
             final String path = getRelativePath( req );
             final String parentPath = getParentPath( getCleanPath( path ) );
@@ -79,7 +69,7 @@ public class DoMkcol
                 StoredObject parentSo, so = null;
                 try
                 {
-                    parentSo = _store.getStoredObject( transaction, parentPath );
+                    parentSo = worker.getStoredObject( transaction, parentPath );
                     if ( parentSo == null )
                     {
                         // parent not exists
@@ -88,10 +78,10 @@ public class DoMkcol
                     }
                     if ( parentPath != null && parentSo.isFolder() )
                     {
-                        so = _store.getStoredObject( transaction, path );
+                        so = worker.getStoredObject( transaction, path );
                         if ( so == null )
                         {
-                            _store.createFolder( transaction, path );
+                            worker.createFolder( transaction, path );
                             resp.setStatus( WebdavStatus.SC_CREATED );
                         }
                         else

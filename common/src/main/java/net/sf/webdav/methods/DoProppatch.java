@@ -32,14 +32,15 @@ import java.util.Vector;
 import javax.xml.parsers.DocumentBuilder;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
+import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
-import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.util.XMLHelper;
@@ -56,27 +57,15 @@ public class DoProppatch
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoProppatch.class );
 
-    private final boolean _readOnly;
-
-    private final IWebdavStore _store;
-
-    private final ResourceLocks _resourceLocks;
-
-    public DoProppatch( final IWebdavStore store, final ResourceLocks resLocks, final boolean readOnly )
-    {
-        _readOnly = readOnly;
-        _store = store;
-        _resourceLocks = resLocks;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        if ( _readOnly )
+        if ( resources.isReadOnly() )
         {
             resp.sendError( SC_FORBIDDEN );
             return;
@@ -87,6 +76,7 @@ public class DoProppatch
 
         Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
 
+        final IResourceLocks _resourceLocks = resources.getResourceLocks();
         if ( !checkLocks( transaction, req, resp, _resourceLocks, parentPath ) )
         {
             errorList.put( parentPath, SC_LOCKED );
@@ -113,7 +103,7 @@ public class DoProppatch
             LockedObject lo = null;
             try
             {
-                so = _store.getStoredObject( transaction, path );
+                so = worker.getStoredObject( transaction, path );
                 lo = _resourceLocks.getLockedObjectByPath( transaction, getCleanPath( path ) );
 
                 if ( so == null )

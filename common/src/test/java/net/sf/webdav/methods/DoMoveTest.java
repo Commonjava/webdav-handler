@@ -21,7 +21,7 @@ import net.sf.webdav.StoredObject;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -33,7 +33,7 @@ public class DoMoveTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -64,7 +64,7 @@ public class DoMoveTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -84,12 +84,7 @@ public class DoMoveTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, readOnly ) );
     }
 
     @Test
@@ -133,48 +128,43 @@ public class DoMoveTest
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
                 StoredObject destFileSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destFilePath );
+                one( mockStoreWorker ).createResource( mockTransaction, destFilePath );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
                 will( returnValue( 8L ) );
 
                 destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
             }
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -218,12 +208,12 @@ public class DoMoveTest
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_PRECONDITION_FAILED );
@@ -232,12 +222,7 @@ public class DoMoveTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -281,51 +266,46 @@ public class DoMoveTest
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, destFilePath );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destFilePath );
+                one( mockStoreWorker ).createResource( mockTransaction, destFilePath );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
                 will( returnValue( 8L ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, destFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
             }
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -369,7 +349,7 @@ public class DoMoveTest
 
                 final StoredObject sourceFileSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_NOT_FOUND );
@@ -377,12 +357,7 @@ public class DoMoveTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -426,12 +401,7 @@ public class DoMoveTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -475,73 +445,69 @@ public class DoMoveTest
 
                 final StoredObject sourceCollectionSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
                 final StoredObject destCollectionSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, destCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destCollectionPath );
                 will( returnValue( destCollectionSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, destCollectionPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, destCollectionPath );
 
                 one( mockReq ).getHeader( "Depth" );
                 will( returnValue( null ) );
 
                 String[] sourceChildren = new String[] { "sourceFile" };
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceChildren ) );
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath + "/sourceFile" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath + "/sourceFile" );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, destCollectionPath + "/sourceFile" );
+                one( mockStoreWorker ).createResource( mockTransaction, destCollectionPath + "/sourceFile" );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceCollectionPath + "/sourceFile" );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceCollectionPath + "/sourceFile" );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais,
+                                                           null, null );
                 will( returnValue( 8L ) );
 
                 final StoredObject movedSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, destCollectionPath + "/sourceFile" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destCollectionPath + "/sourceFile" );
                 will( returnValue( movedSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
                 sourceChildren = new String[] { "sourceFile" };
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceChildren ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
 
-                one( mockStore ).removeObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceCollectionPath );
             }
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -585,12 +551,12 @@ public class DoMoveTest
 
                 final StoredObject sourceCollectionSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
                 final StoredObject destCollectionSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, destCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, destCollectionPath );
                 will( returnValue( destCollectionSo ) );
 
                 one( mockRes ).sendError( WebdavStatus.SC_PRECONDITION_FAILED );
@@ -598,12 +564,7 @@ public class DoMoveTest
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
     @Test
@@ -647,86 +608,82 @@ public class DoMoveTest
 
                 final StoredObject sourceCollectionSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
                 final StoredObject destCollectionSo = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, overwritePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, overwritePath );
                 will( returnValue( destCollectionSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, overwritePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, overwritePath );
                 will( returnValue( destCollectionSo ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, overwritePath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, overwritePath );
                 will( returnValue( destChildren ) );
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, overwritePath + "/destFile" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, overwritePath + "/destFile" );
                 will( returnValue( destFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, overwritePath + "/destFile" );
+                one( mockStoreWorker ).removeObject( mockTransaction, overwritePath + "/destFile" );
 
-                one( mockStore ).removeObject( mockTransaction, overwritePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, overwritePath );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, overwritePath );
+                one( mockStoreWorker ).createFolder( mockTransaction, overwritePath );
 
                 one( mockReq ).getHeader( "Depth" );
                 will( returnValue( null ) );
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceChildren ) );
 
                 final StoredObject sourceFileSo = initFileStoredObject( resourceContent );
 
                 // failures start here...
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).createResource( mockTransaction, overwritePath + "/sourceFile" );
+                one( mockStoreWorker ).createResource( mockTransaction, overwritePath + "/sourceFile" );
 
-                one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, overwritePath + "/sourceFile", bais, null, null );
+                one( mockStoreWorker ).setResourceContent( mockTransaction, overwritePath + "/sourceFile", bais, null,
+                                                           null );
 
                 final StoredObject movedSo = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, overwritePath + "/sourceFile" );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, overwritePath + "/sourceFile" );
                 will( returnValue( movedSo ) );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_NO_CONTENT );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceCollectionSo ) );
 
                 sourceChildren = new String[] { "sourceFile" };
 
-                one( mockStore ).getChildrenNames( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).getChildrenNames( mockTransaction, sourceCollectionPath );
                 will( returnValue( sourceChildren ) );
 
-                one( mockStore ).getStoredObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, sourceFilePath );
                 will( returnValue( sourceFileSo ) );
 
-                one( mockStore ).removeObject( mockTransaction, sourceFilePath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceFilePath );
 
-                one( mockStore ).removeObject( mockTransaction, sourceCollectionPath );
+                one( mockStoreWorker ).removeObject( mockTransaction, sourceCollectionPath );
             }
         } );
 
         final ResourceLocks resLocks = new ResourceLocks();
-        final DoDelete doDelete = new DoDelete( mockStore, resLocks, !readOnly );
-        final DoCopy doCopy = new DoCopy( mockStore, resLocks, doDelete, !readOnly );
-
-        final DoMove doMove = new DoMove( resLocks, doDelete, doCopy, !readOnly );
-
-        doMove.execute( mockTransaction, mockReq, mockRes );
+        new DoMove().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
     }
 
 }

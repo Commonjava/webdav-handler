@@ -18,13 +18,14 @@ package net.sf.webdav.methods;
 import java.io.IOException;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.LockFailedException;
 import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -34,27 +35,15 @@ public class DoUnlock
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoUnlock.class );
 
-    private final IWebdavStore _store;
-
-    private final IResourceLocks _resourceLocks;
-
-    private final boolean _readOnly;
-
-    public DoUnlock( final IWebdavStore store, final IResourceLocks resourceLocks, final boolean readOnly )
-    {
-        _store = store;
-        _resourceLocks = resourceLocks;
-        _readOnly = readOnly;
-    }
-
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, WebdavException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        if ( _readOnly )
+        if ( resources.isReadOnly() )
         {
             resp.sendError( WebdavStatus.SC_FORBIDDEN );
             return;
@@ -66,6 +55,7 @@ public class DoUnlock
             final String tempLockOwner = "doUnlock" + System.currentTimeMillis() + req.toString();
             try
             {
+                final IResourceLocks _resourceLocks = resources.getResourceLocks();
                 if ( _resourceLocks.lock( transaction, path, tempLockOwner, false, 0, TEMP_TIMEOUT, TEMPORARY ) )
                 {
 
@@ -103,10 +93,10 @@ public class DoUnlock
 
                         if ( _resourceLocks.unlock( transaction, lockId, owner ) )
                         {
-                            final StoredObject so = _store.getStoredObject( transaction, path );
+                            final StoredObject so = worker.getStoredObject( transaction, path );
                             if ( so.isNullResource() )
                             {
-                                _store.removeObject( transaction, path );
+                                worker.removeObject( transaction, path );
                             }
 
                             resp.setStatus( WebdavStatus.SC_NO_CONTENT );
@@ -131,7 +121,8 @@ public class DoUnlock
             }
             finally
             {
-                _resourceLocks.unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
+                resources.getResourceLocks()
+                         .unlockTemporaryLockedObjects( transaction, path, tempLockOwner );
             }
         }
     }

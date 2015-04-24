@@ -24,7 +24,7 @@ import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.locking.ResourceLocks;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 import net.sf.webdav.testutil.MockTest;
@@ -36,7 +36,7 @@ public class DoLockTest
     extends MockTest
 {
 
-    static IWebdavStore mockStore;
+    static IWebdavStoreWorker mockStoreWorker;
 
     static WebdavRequest mockReq;
 
@@ -58,7 +58,7 @@ public class DoLockTest
     public void setupFixtures()
         throws Exception
     {
-        mockStore = _mockery.mock( IWebdavStore.class );
+        mockStoreWorker = _mockery.mock( IWebdavStoreWorker.class );
         mockReq = _mockery.mock( WebdavRequest.class );
         mockRes = _mockery.mock( WebdavResponse.class );
         mockTransaction = _mockery.mock( ITransaction.class );
@@ -79,8 +79,7 @@ public class DoLockTest
 
         final ResourceLocks resLocks = new ResourceLocks();
 
-        final DoLock doLock = new DoLock( mockStore, resLocks, readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -135,8 +134,7 @@ public class DoLockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, resLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -172,7 +170,7 @@ public class DoLockTest
 
                 final StoredObject so = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( so ) );
 
                 one( mockReq ).getInputStream();
@@ -196,8 +194,7 @@ public class DoLockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, resLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -233,7 +230,7 @@ public class DoLockTest
 
                 final StoredObject so = initFileStoredObject( resourceContent );
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( so ) );
 
                 one( mockReq ).getInputStream();
@@ -257,8 +254,7 @@ public class DoLockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, resLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -295,7 +291,7 @@ public class DoLockTest
 
                 final StoredObject so = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( so ) );
 
                 one( mockReq ).getInputStream();
@@ -319,8 +315,7 @@ public class DoLockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, resLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -356,7 +351,7 @@ public class DoLockTest
 
                 final StoredObject so = initFolderStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( so ) );
 
                 one( mockReq ).getInputStream();
@@ -380,8 +375,7 @@ public class DoLockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, resLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker, newResources( resLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
     }
@@ -432,26 +426,26 @@ public class DoLockTest
 
                 StoredObject lockNullResourceSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 final StoredObject parentSo = null;
 
-                one( mockStore ).getStoredObject( mockTransaction, parentPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, parentPath );
                 will( returnValue( parentSo ) );
 
-                one( mockStore ).createFolder( mockTransaction, parentPath );
+                one( mockStoreWorker ).createFolder( mockTransaction, parentPath );
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( lockNullResourceSo ) );
 
-                one( mockStore ).createResource( mockTransaction, lockPath );
+                one( mockStoreWorker ).createResource( mockTransaction, lockPath );
 
                 one( mockRes ).setStatus( WebdavStatus.SC_CREATED );
 
                 lockNullResourceSo = initLockNullStoredObject();
 
-                one( mockStore ).getStoredObject( mockTransaction, lockPath );
+                one( mockStoreWorker ).getStoredObject( mockTransaction, lockPath );
                 will( returnValue( lockNullResourceSo ) );
 
                 one( mockReq ).getInputStream();
@@ -494,8 +488,8 @@ public class DoLockTest
             }
         } );
 
-        final DoLock doLock = new DoLock( mockStore, mockResourceLocks, !readOnly );
-        doLock.execute( mockTransaction, mockReq, mockRes );
+        new DoLock().execute( mockTransaction, mockReq, mockRes, mockStoreWorker,
+                              newResources( mockResourceLocks, !readOnly ) );
 
         _mockery.assertIsSatisfied();
 

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.Hashtable;
 
 import net.sf.webdav.StoredObject;
+import net.sf.webdav.WebdavResources;
 import net.sf.webdav.WebdavStatus;
 import net.sf.webdav.exceptions.AccessDeniedException;
 import net.sf.webdav.exceptions.LockFailedException;
@@ -34,7 +35,7 @@ import net.sf.webdav.exceptions.WebdavException;
 import net.sf.webdav.locking.IResourceLocks;
 import net.sf.webdav.locking.LockedObject;
 import net.sf.webdav.spi.ITransaction;
-import net.sf.webdav.spi.IWebdavStore;
+import net.sf.webdav.spi.IWebdavStoreWorker;
 import net.sf.webdav.spi.WebdavRequest;
 import net.sf.webdav.spi.WebdavResponse;
 
@@ -44,40 +45,26 @@ public class DoPut
 
     private static org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger( DoPut.class );
 
-    private final IWebdavStore _store;
-
-    private final IResourceLocks _resourceLocks;
-
-    private final boolean _readOnly;
-
-    private final boolean _lazyFolderCreationOnPut;
-
-    private String _userAgent;
-
-    public DoPut( final IWebdavStore store, final IResourceLocks resLocks, final boolean readOnly, final boolean lazyFolderCreationOnPut )
-    {
-        _store = store;
-        _resourceLocks = resLocks;
-        _readOnly = readOnly;
-        _lazyFolderCreationOnPut = lazyFolderCreationOnPut;
-    }
+    private String userAgent;
 
     @Override
-    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp )
+    public void execute( final ITransaction transaction, final WebdavRequest req, final WebdavResponse resp,
+                         final IWebdavStoreWorker worker, final WebdavResources resources )
         throws IOException, LockFailedException
     {
         LOG.trace( "-- " + this.getClass()
                                .getName() );
 
-        if ( !_readOnly )
+        if ( !resources.isReadOnly() )
         {
             final String path = getRelativePath( req );
             final String parentPath = getParentPath( path );
 
-            _userAgent = req.getHeader( "User-Agent" );
+            userAgent = req.getHeader( "User-Agent" );
 
             final Hashtable<String, WebdavStatus> errorList = new Hashtable<String, WebdavStatus>();
 
+            final IResourceLocks _resourceLocks = resources.getResourceLocks();
             if ( !checkLocks( transaction, req, resp, _resourceLocks, parentPath ) )
             {
                 errorList.put( parentPath, SC_LOCKED );
@@ -98,30 +85,30 @@ public class DoPut
                 StoredObject parentSo, so = null;
                 try
                 {
-                    parentSo = _store.getStoredObject( transaction, parentPath );
+                    parentSo = worker.getStoredObject( transaction, parentPath );
                     if ( parentPath != null && parentSo != null && parentSo.isResource() )
                     {
                         resp.sendError( SC_FORBIDDEN );
                         return;
 
                     }
-                    else if ( parentPath != null && parentSo == null && _lazyFolderCreationOnPut )
+                    else if ( parentPath != null && parentSo == null && resources.isLazyFolderCreationOnPut() )
                     {
-                        _store.createFolder( transaction, parentPath );
+                        worker.createFolder( transaction, parentPath );
 
                     }
-                    else if ( parentPath != null && parentSo == null && !_lazyFolderCreationOnPut )
+                    else if ( parentPath != null && parentSo == null && !resources.isLazyFolderCreationOnPut() )
                     {
                         errorList.put( parentPath, SC_NOT_FOUND );
                         sendReport( req, resp, errorList );
                         return;
                     }
 
-                    so = _store.getStoredObject( transaction, path );
+                    so = worker.getStoredObject( transaction, path );
 
                     if ( so == null )
                     {
-                        _store.createResource( transaction, path );
+                        worker.createResource( transaction, path );
                         // resp.setStatus(SC_CREATED);
                     }
                     else
@@ -176,9 +163,10 @@ public class DoPut
                     doUserAgentWorkaround( resp );
 
                     // setting resourceContent
-                    final long resourceLength = _store.setResourceContent( transaction, path, req.getInputStream(), null, null );
+                    final long resourceLength =
+                        worker.setResourceContent( transaction, path, req.getInputStream(), null, null );
 
-                    so = _store.getStoredObject( transaction, path );
+                    so = worker.getStoredObject( transaction, path );
                     if ( resourceLength != -1 )
                     {
                         so.setResourceLength( resourceLength );
@@ -216,16 +204,16 @@ public class DoPut
      */
     private void doUserAgentWorkaround( final WebdavResponse resp )
     {
-        if ( _userAgent != null && _userAgent.indexOf( "WebDAVFS" ) != -1 && _userAgent.indexOf( "Transmit" ) == -1 )
+        if ( userAgent != null && userAgent.indexOf( "WebDAVFS" ) != -1 && userAgent.indexOf( "Transmit" ) == -1 )
         {
-            LOG.trace( "DoPut.execute() : do workaround for user agent '" + _userAgent + "'" );
+            LOG.trace( "DoPut.execute() : do workaround for user agent '" + userAgent + "'" );
             resp.setStatus( SC_CREATED );
         }
-        else if ( _userAgent != null && _userAgent.indexOf( "Transmit" ) != -1 )
+        else if ( userAgent != null && userAgent.indexOf( "Transmit" ) != -1 )
         {
             // Transmit also uses WEBDAVFS 1.x.x but crashes
             // with SC_CREATED response
-            LOG.trace( "DoPut.execute() : do workaround for user agent '" + _userAgent + "'" );
+            LOG.trace( "DoPut.execute() : do workaround for user agent '" + userAgent + "'" );
             resp.setStatus( SC_NO_CONTENT );
         }
         else
