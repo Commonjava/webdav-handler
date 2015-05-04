@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.commonjava</groupId>
     <artifactId>commonjava</artifactId>
-    <version>7-SNAPSHOT</version>
+    <version>7</version>
   </parent>
   
   <groupId>org.commonjava.web</groupId>
@@ -33,9 +33,9 @@
   <inceptionYear>2006</inceptionYear>
   
   <scm>
-    <connection>scm:git:http://jdcasey@github.com/jdcasey/webdav-handler.git</connection>
-    <developerConnection>scm:git:git@github.com:jdcasey/webdav-handler.git</developerConnection>
-    <url>http://github.com/jdcasey/webdav-handler</url>
+    <connection>scm:git:https://github.com/Commonjava/webdav-handler.git</connection>
+    <developerConnection>scm:git:git@github.com:Commonjava/webdav-handler.git</developerConnection>
+    <url>https://github.com/Commonjava/webdav-handler</url>
     <tag>HEAD</tag>
   </scm>
   
