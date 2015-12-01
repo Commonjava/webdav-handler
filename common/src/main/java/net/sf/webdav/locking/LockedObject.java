@@ -261,10 +261,7 @@ public class LockedObject {
      * @return true if the lock can be placed
      */
     public boolean checkLocks(boolean exclusive, int depth) {
-        if (checkParents(exclusive) && checkChildren(exclusive, depth)) {
-            return true;
-        }
-        return false;
+        return checkParents( exclusive ) && checkChildren( exclusive, depth );
     }
 
     /**

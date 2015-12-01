@@ -230,7 +230,7 @@ public enum WebdavStatus
 
     private String message;
 
-    private WebdavStatus( final int code, final String message )
+    WebdavStatus( final int code, final String message )
     {
         this.code = code;
         this.message = message;
@@ -266,4 +266,4 @@ public enum WebdavStatus
         return null;
     }
 
-};
+}
