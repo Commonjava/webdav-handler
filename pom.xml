@@ -42,6 +42,7 @@
   <properties>
     <!-- This is WRONG, but leaving in here to preserve/restore original copyright headers -->
     <projectOwner>Apache Software Foundation</projectOwner>
+    <javaVersion>1.7</javaVersion>
   </properties>
   
   <modules>
@@ -137,13 +138,6 @@
   <build>
     <pluginManagement>
       <plugins>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
-          </configuration>
-        </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>

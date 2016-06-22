@@ -50,7 +50,7 @@ public class DoGetTest
 
     static ITransaction mockTransaction;
 
-    static TestingOutputStream tos = new TestingOutputStream();;
+    static TestingOutputStream tos = new TestingOutputStream();
 
     static byte[] resourceContent = new byte[] { '<', 'h', 'e', 'l', 'l', 'o', '/', '>' };
 

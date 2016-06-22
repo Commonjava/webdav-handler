@@ -190,7 +190,7 @@ public class DoPropfind
             }
             catch ( final WebdavException e )
             {
-                LOG.warn( "Sending internal error!" );
+                LOG.warn( "Sending INTERNAL error!" );
                 resp.sendError( SC_INTERNAL_SERVER_ERROR );
             }
             finally
