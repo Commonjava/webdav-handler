@@ -290,7 +290,7 @@ public class DoCopy
         {
             _store.createResource( transaction, destinationPath );
             final long resourceLength =
-                _store.setResourceContent( transaction, destinationPath, _store.getResourceContent( transaction, sourcePath ), null, null );
+                _store.setResourceContent( transaction, destinationPath, _store.getResourceContent( transaction, sourcePath ), sourceSo.getResourceLength());
 
             if ( resourceLength != -1 )
             {
@@ -368,7 +368,7 @@ public class DoCopy
                         _store.createResource( transaction, destinationPath + children[i] );
                         final long resourceLength =
                             _store.setResourceContent( transaction, destinationPath + children[i],
-                                                       _store.getResourceContent( transaction, sourcePath + children[i] ), null, null );
+                                                       _store.getResourceContent( transaction, sourcePath + children[i] ), childSo.getResourceLength());
 
                         if ( resourceLength != -1 )
                         {

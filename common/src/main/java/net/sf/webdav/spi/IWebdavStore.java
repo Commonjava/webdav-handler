@@ -146,16 +146,12 @@ public interface IWebdavStore
      *      URI of the resource where the content will be stored
      * @param content
      *      input stream from which the content will be read from
-     * @param contentType
-     *      content type of the resource or <code>null</code> if unknown
-     * @param characterEncoding
-     *      character encoding of the resource or <code>null</code> if unknown
-     *      or not applicable
+     * @param contentLength The length of the content.
      * @return lenght of resource
      * @throws WebdavException
      *      if something goes wrong on the store level
      */
-    long setResourceContent( ITransaction transaction, String resourceUri, InputStream content, String contentType, String characterEncoding )
+    long setResourceContent(ITransaction transaction, String resourceUri, InputStream content, long contentLength)
         throws WebdavException;
 
     /**

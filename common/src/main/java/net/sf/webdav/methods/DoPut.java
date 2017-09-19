@@ -176,7 +176,7 @@ public class DoPut
                     doUserAgentWorkaround( resp );
 
                     // setting resourceContent
-                    final long resourceLength = _store.setResourceContent( transaction, path, req.getInputStream(), null, null );
+                    final long resourceLength = _store.setResourceContent( transaction, path, req.getInputStream(), req.getContentLength());
 
                     so = _store.getStoredObject( transaction, path );
                     if ( resourceLength != -1 )
