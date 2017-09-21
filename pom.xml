@@ -49,6 +49,7 @@
     <module>common</module>
     <module>servlet</module>
     <module>vertx</module>
+    <module>s3</module>
   </modules>
   
   <dependencyManagement>
