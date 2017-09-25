@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2006 Apache Software Foundation (jdcasey@commonjava.org)
+    Copyright (C) 2006-2017 Apache Software Foundation (https://sourceforge.net/p/webdav-servlet, https://github.com/Commonjava/webdav-handler)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@
   <packaging>pom</packaging>
 
   <name>WebDAV Service Handler :: Parent</name>
-  <inceptionYear>2006</inceptionYear>
+  <inceptionYear>2006-2017</inceptionYear>
   
   <scm>
     <connection>scm:git:https://github.com/Commonjava/webdav-handler.git</connection>
@@ -40,6 +40,7 @@
   </scm>
   
   <properties>
+    <projectEmail>https://sourceforge.net/p/webdav-servlet, https://github.com/Commonjava/webdav-handler</projectEmail>
     <!-- This is WRONG, but leaving in here to preserve/restore original copyright headers -->
     <projectOwner>Apache Software Foundation</projectOwner>
     <javaVersion>1.7</javaVersion>
@@ -51,7 +52,84 @@
     <module>vertx</module>
     <module>s3</module>
   </modules>
-  
+
+  <developers>
+    <developer>
+      <id>me133</id>
+      <name>Marc Eaddy</name>
+      <email>me133@columbia.edu</email>
+      <roles>
+        <role>original developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>remm</id>
+      <name>Remy Maucherat</name>
+      <email>remm@apache.org</email>
+      <roles>
+        <role>apache developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>craigmcc</id>
+      <name>Craig R. McClanahan</name>
+      <email>craigmcc@apache.org</email>
+      <roles>
+        <role>apache developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>ak_101tec_com</id>
+      <name>Andreas Küster</name>
+      <url>https://sourceforge.net/u/ak_101tec_com/profile/</url>
+      <roles>
+        <role>sourceforce project developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>bauhardt</id>
+      <name>Marko Bauhardt</name>
+      <url>https://sourceforge.net/u/bauhardt/profile/</url>
+      <roles>
+        <role>sourceforce project developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>joa23</id>
+      <name>Stefan Groschupf</name>
+      <url>https://sourceforge.net/u/joa23/profile/</url>
+      <roles>
+        <role>sourceforce project developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>jdcasey</id>
+      <name>John Casey</name>
+      <email>jdcasey@commonjava.org</email>
+      <url>https://github.com/jdcasey</url>
+      <roles>
+        <role>github project admin</role>
+        <role>developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>stoicflame</id>
+      <name>Ryan Heaton</name>
+      <email>ryan@webcohesion.com</email>
+      <url>https://github.com/stoicflame</url>
+      <roles>
+        <role>developer</role>
+        <role>s3 impl developer</role>
+      </roles>
+    </developer>
+  </developers>
+
+  <contributors>
+    <contributor>
+      <name>Tim Tye</name>
+    </contributor>
+  </contributors>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -109,6 +187,12 @@
         <groupId>io.vertx</groupId>
         <artifactId>vertx-platform</artifactId>
         <version>2.0.0-final</version>
+      </dependency>
+      
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-s3</artifactId>
+        <version>1.11.202</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

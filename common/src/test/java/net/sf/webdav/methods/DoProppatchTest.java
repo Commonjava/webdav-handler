@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2006 Apache Software Foundation (jdcasey@commonjava.org)
+ * Copyright (C) 2006-2017 Apache Software Foundation (https://sourceforge.net/p/webdav-servlet, https://github.com/Commonjava/webdav-handler)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
