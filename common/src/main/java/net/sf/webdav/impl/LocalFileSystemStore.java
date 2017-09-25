@@ -148,8 +148,7 @@ public class LocalFileSystemStore
     }
 
     @Override
-    public long setResourceContent( final ITransaction transaction, final String uri, final InputStream is, final String contentType,
-                                    final String characterEncoding )
+    public long setResourceContent(final ITransaction transaction, final String uri, final InputStream is, long contentLength)
         throws WebdavException
     {
 

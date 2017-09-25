@@ -282,7 +282,7 @@ public class DoCopyTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, resourceLength );
                 will( returnValue( resourceLength ) );
 
                 destFileSo = initFileStoredObject( resourceContent );
@@ -455,7 +455,7 @@ public class DoCopyTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, resourceLength );
 
                 final StoredObject destFileSo = initFileStoredObject( resourceContent );
 
@@ -596,7 +596,7 @@ public class DoCopyTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, resourceLength );
 
                 one( mockStore ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( existingDestSo ) );
@@ -737,7 +737,7 @@ public class DoCopyTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, resourceLength );
 
                 one( mockStore ).getStoredObject( mockTransaction, destFilePath );
                 will( returnValue( destFileSo ) );

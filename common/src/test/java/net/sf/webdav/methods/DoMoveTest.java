@@ -151,7 +151,7 @@ public class DoMoveTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, resourceLength );
                 will( returnValue( 8L ) );
 
                 destFileSo = initFileStoredObject( resourceContent );
@@ -304,7 +304,7 @@ public class DoMoveTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destFilePath, bais, resourceLength );
                 will( returnValue( 8L ) );
 
                 one( mockStore ).getStoredObject( mockTransaction, destFilePath );
@@ -508,7 +508,7 @@ public class DoMoveTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceCollectionPath + "/sourceFile" );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, destCollectionPath + "/sourceFile", bais, resourceLength );
                 will( returnValue( 8L ) );
 
                 final StoredObject movedSo = initFileStoredObject( resourceContent );
@@ -694,7 +694,7 @@ public class DoMoveTest
                 one( mockStore ).getResourceContent( mockTransaction, sourceFilePath );
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, overwritePath + "/sourceFile", bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, overwritePath + "/sourceFile", bais, resourceLength );
 
                 final StoredObject movedSo = initFileStoredObject( resourceContent );
 

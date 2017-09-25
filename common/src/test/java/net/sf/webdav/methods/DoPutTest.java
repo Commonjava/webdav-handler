@@ -96,6 +96,9 @@ public class DoPutTest
                 one( mockReq ).getHeader( "User-Agent" );
                 will( returnValue( "Goliath agent" ) );
 
+                one( mockReq ).getContentLength();
+                will( returnValue( (int) resourceLength ) );
+
                 final StoredObject parentSo = initFolderStoredObject();
 
                 one( mockStore ).getStoredObject( mockTransaction, parentPath );
@@ -113,7 +116,7 @@ public class DoPutTest
                 one( mockReq ).getInputStream();
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, path, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, path, bais, resourceLength );
                 will( returnValue( 8L ) );
 
                 fileSo = initFileStoredObject( resourceContent );
@@ -190,6 +193,9 @@ public class DoPutTest
                 one( mockReq ).getHeader( "User-Agent" );
                 will( returnValue( "WebDAVFS/1.5.0 (01500000) ....." ) );
 
+                one( mockReq ).getContentLength();
+                will( returnValue( (int) resourceLength ) );
+
                 final StoredObject parentSo = null;
 
                 one( mockStore ).getStoredObject( mockTransaction, parentPath );
@@ -209,7 +215,7 @@ public class DoPutTest
                 one( mockReq ).getInputStream();
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, path, bais, null, null );
+                one( mockStore ).setResourceContent( mockTransaction, path, bais, resourceLength );
                 will( returnValue( 8L ) );
 
                 fileSo = initFileStoredObject( resourceContent );
@@ -419,7 +425,10 @@ public class DoPutTest
                 one( mockReq ).getInputStream();
                 will( returnValue( bais ) );
 
-                one( mockStore ).setResourceContent( mockTransaction, path, bais, null, null );
+                one( mockReq ).getContentLength();
+                will( returnValue( (int) resourceLength ) );
+
+                one( mockStore ).setResourceContent( mockTransaction, path, bais, resourceLength );
                 will( returnValue( 8L ) );
 
                 final StoredObject newResourceSo = initFileStoredObject( resourceContent );
