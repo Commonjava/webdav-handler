@@ -44,6 +44,7 @@
     <!-- This is WRONG, but leaving in here to preserve/restore original copyright headers -->
     <projectOwner>Apache Software Foundation</projectOwner>
     <javaVersion>1.7</javaVersion>
+    <activationVersion>1.2.0</activationVersion>
   </properties>
   
   <modules>
@@ -159,6 +160,11 @@
         <artifactId>cdi-api</artifactId>
         <version>1.1</version>
         <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>javax.activation</groupId>
+        <artifactId>javax.activation-api</artifactId>
+        <version>${activationVersion}</version>
       </dependency>
       
       <dependency>
